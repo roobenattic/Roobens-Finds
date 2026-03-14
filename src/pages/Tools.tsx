@@ -1,9 +1,10 @@
 /**
  * Tools Page — Roobens Finds Digital Product Catalog
- * Design: Warm Authority — cream #FAF9F7, navy #495E79, gold #F16953
- * Structure: Brand tools catalog — flagship + upcoming products
- * Built to scale as more digital tools are added to the brand.
+ * Design: Warm Authority — cream #FAF9F7, navy #495E79, coral #F16953, peach #FECFA5
+ * Mobile: collapsible category filter — collapsed by default, expands on tap, auto-collapses on selection
+ * Desktop: standard pill row, unchanged
  */
+import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import {
   CheckCircle2,
   Sparkles,
   Star,
+  ChevronDown,
 } from "lucide-react";
 
 const PRODUCT_MOCKUP = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/product-mockup-JTHwG2mphwMYfjMFiBKXCW.webp";
@@ -33,8 +35,9 @@ const tools = [
     status: "live",
     badge: "Flagship",
     badgeColor: "bg-[#F16953] text-white",
+    category: "Investing",
     features: [
-      "Basic portfolio tracker (Free)",
+      "Basic portfolio tracker (Free )",
       "Dividend income log (Premium)",
       "Asset allocation view (Premium)",
       "Goal planner & review templates",
@@ -57,6 +60,7 @@ const tools = [
     status: "coming-soon",
     badge: "Coming Soon",
     badgeColor: "bg-blue-100 text-blue-700",
+    category: "Budgeting",
     features: [
       "Monthly income & expense tracker",
       "Category-based spending breakdown",
@@ -80,6 +84,7 @@ const tools = [
     status: "in-development",
     badge: "In Development",
     badgeColor: "bg-emerald-100 text-emerald-700",
+    category: "Savings",
     features: [
       "Multi-goal savings tracker",
       "Visual progress milestones",
@@ -103,6 +108,7 @@ const tools = [
     status: "planned",
     badge: "Planned",
     badgeColor: "bg-amber-100 text-amber-700",
+    category: "Debt",
     features: [
       "Debt inventory tracker",
       "Snowball & avalanche methods",
@@ -126,6 +132,21 @@ const categories = [
 ];
 
 export default function Tools() {
+  const [activeCategory, setActiveCategory] = useState("All Tools");
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const filteredTools =
+    activeCategory === "All Tools"
+      ? tools
+      : tools.filter((t) => t.category === activeCategory);
+
+  const activeCat = categories.find((c) => c.label === activeCategory) ?? categories[0];
+
+  function selectCategory(label: string) {
+    setActiveCategory(label);
+    setMobileOpen(false);
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF9F7] pt-16">
       {/* Hero */}
@@ -165,24 +186,79 @@ export default function Tools() {
       {/* Category filter */}
       <section className="bg-white border-b border-[#FECFA5] sticky top-16 z-30">
         <div className="container">
-          <div className="flex items-center gap-2 py-3 overflow-x-auto">
-            {categories.map((cat, i) => (
-              <button
-                key={i}
-                className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
-                  i === 0
-                    ? "bg-[#495E79] text-white"
-                    : "bg-[#FAF9F7] text-[#495E79]/60 hover:bg-[#FECFA5] border border-[#FECFA5]"
-                }`}
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                {cat.label}
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${i === 0 ? "bg-white/20 text-white" : "bg-[#495E79]/10 text-[#495E79]/50"}`}>
-                  {cat.count}
+
+          {/* Mobile: collapsible trigger */}
+          <div className="md:hidden py-2.5">
+            <button
+              onClick={() => setMobileOpen((o) => !o)}
+              className="flex items-center justify-between w-full px-4 py-2.5 rounded-full bg-[#FAF9F7] border border-[#FECFA5] text-[#495E79] font-semibold text-sm transition-colors active:bg-[#FECFA5]"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+              aria-expanded={mobileOpen}
+            >
+              <span className="flex items-center gap-2">
+                <span className="text-[#495E79]/50 text-xs font-normal">Category:</span>
+                <span className="text-[#495E79] font-semibold">{activeCat.label}</span>
+                <span className="text-[10px] bg-[#495E79]/10 text-[#495E79]/60 px-1.5 py-0.5 rounded-full font-semibold">
+                  {activeCat.count}
                 </span>
-              </button>
-            ))}
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-[#495E79]/50 transition-transform duration-200 ${mobileOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+
+            {mobileOpen && (
+              <div className="mt-2 rounded-xl border border-[#FECFA5] bg-white shadow-lg shadow-[#495E79]/5 overflow-hidden">
+                {categories.map((cat) => {
+                  const isActive = cat.label === activeCategory;
+                  return (
+                    <button
+                      key={cat.label}
+                      onClick={() => selectCategory(cat.label)}
+                      className={`w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors border-b border-[#FECFA5]/50 last:border-0 ${
+                        isActive
+                          ? "bg-[#495E79] text-white"
+                          : "text-[#495E79] hover:bg-[#FAF9F7] active:bg-[#FECFA5]"
+                      }`}
+                      style={{ fontFamily: "'DM Sans', sans-serif" }}
+                    >
+                      <span>{cat.label}</span>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${
+                        isActive ? "bg-white/20 text-white" : "bg-[#495E79]/10 text-[#495E79]/50"
+                      }`}>
+                        {cat.count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
+
+          {/* Desktop: standard pill row */}
+          <div className="hidden md:flex items-center gap-2 py-3 flex-wrap">
+            {categories.map((cat) => {
+              const isActive = cat.label === activeCategory;
+              return (
+                <button
+                  key={cat.label}
+                  onClick={() => setActiveCategory(cat.label)}
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
+                    isActive
+                      ? "bg-[#495E79] text-white"
+                      : "bg-[#FAF9F7] text-[#495E79]/60 hover:bg-[#FECFA5] border border-[#FECFA5]"
+                  }`}
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {cat.label}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? "bg-white/20 text-white" : "bg-[#495E79]/10 text-[#495E79]/50"}`}>
+                    {cat.count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
         </div>
       </section>
 
@@ -190,7 +266,7 @@ export default function Tools() {
       <section className="py-16 md:py-20 bg-[#FAF9F7]">
         <div className="container">
           <div className="space-y-8">
-            {tools.map((tool) => (
+            {filteredTools.map((tool) => (
               <div
                 key={tool.id}
                 className={`bg-white border rounded-sm overflow-hidden transition-all ${
@@ -202,7 +278,6 @@ export default function Tools() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                   {/* Content */}
                   <div className="lg:col-span-8 p-7 md:p-8">
-                    {/* Header */}
                     <div className="flex items-start gap-4 mb-5">
                       <div className={`w-12 h-12 rounded-sm flex items-center justify-center flex-shrink-0 ${
                         tool.status === "live" ? "bg-[#F16953]/15 text-[#F16953]" : "bg-[#FAF9F7] text-[#495E79]/30"
@@ -228,7 +303,6 @@ export default function Tools() {
                       {tool.desc}
                     </p>
 
-                    {/* Features */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
                       {tool.features.map((f, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -240,7 +314,6 @@ export default function Tools() {
                       ))}
                     </div>
 
-                    {/* CTA */}
                     {tool.status === "live" ? (
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                         <Link href={tool.freeHref!}>
@@ -250,7 +323,7 @@ export default function Tools() {
                           </Button>
                         </Link>
                         <Link href={tool.premiumHref!}>
-                          <Button className="bg-[#F16953] hover:bg-[#a0822e] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                          <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                             Get Premium — $17
                             <ArrowRight className="ml-2 w-4 h-4" />
                           </Button>
@@ -300,6 +373,18 @@ export default function Tools() {
                 </div>
               </div>
             ))}
+
+            {filteredTools.length === 0 && (
+              <div className="text-center py-16 text-[#495E79]/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                <p className="text-base">No tools in this category yet.</p>
+                <button
+                  onClick={() => setActiveCategory("All Tools")}
+                  className="mt-3 text-[#F16953] text-sm font-medium hover:underline"
+                >
+                  View all tools →
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
