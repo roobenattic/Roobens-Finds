@@ -214,8 +214,13 @@ export default function Finds() {
                   initial="hidden"
                   animate="visible"
                   custom={i}
-                  className="bg-white rounded-2xl border border-[#FECFA5]/60 shadow-sm shadow-[#495E79]/5 p-6 flex flex-col hover:shadow-md hover:shadow-[#495E79]/10 transition-shadow"
-                >
+                  className="bg-white rounded-2xl overflow-hidden border border-[#FECFA5]/60 shadow-sm shadow-[#495E79]/5 flex flex-col hover:shadow-md hover:shadow-[#495E79]/10 transition-shadow">
+              <img
+  src={find.image}
+  alt={find.title}
+  className="w-full h-48 object-cover"
+/>
+<div className="p-6">
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1 min-w-0">
