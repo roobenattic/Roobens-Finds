@@ -2,18 +2,19 @@
  * Home — Roobens Finds
  * Brand: Deep Slate #495E79, Coral #F16953, Soft Peach #FECFA5, Muted Teal #5F7C84
  * Fonts: Poppins (headings), DM Sans (body)
- * CTA hierarchy: Primary = Get Free Version, Secondary = See Premium ($17)
- * Funnel: Hero → Problem → Free offer → Benefits → Upgrade path → Social proof → Email capture
+ * CTA Rule: Free → FREE_DOWNLOAD_URL direct | Premium → PREMIUM_CHECKOUT_URL direct
+ * Sections: Hero → Flagship Tool (free/premium) → Benefits → Testimonials → Email capture
  */
 import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
-import { NEWSLETTER_ENDPOINT } from "@/config";
 import {
-  Download, ArrowRight, CheckCircle2, Star, ChevronDown,
-  BarChart3, Target, Shield, Sparkles, BookOpen, TrendingUp
+  Download, ArrowRight, CheckCircle2, Star,
+  BarChart3, Target, Shield, Sparkles, BookOpen, TrendingUp,
+  Package, Lightbulb, BookMarked, ExternalLink,
 } from "lucide-react";
+import { FREE_DOWNLOAD_URL, PREMIUM_CHECKOUT_URL, NEWSLETTER_ENDPOINT, SHOP_URL, isConfigured } from "@/config";
 
 const LOGO_PRIMARY = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/RF_primary_logo_transparent_195c0c4f.png";
 
@@ -89,11 +90,54 @@ const testimonials = [
   },
   {
     name: "Jordan K.",
-    role: "Dividend investor",
+    role: "Long-term saver",
     quote: "Clean, simple, and actually useful. I've tried three other planners — this one I actually filled out.",
     stars: 5,
   },
 ];
+
+// CTA helpers — go direct when configured, fall back to product detail page
+function FreeCTA({ className, size }: { className?: string; size?: "default" | "lg" | "sm" }) {
+  if (isConfigured(FREE_DOWNLOAD_URL)) {
+    return (
+      <a href={FREE_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
+        <Button size={size} className={className} style={{ fontFamily: "'Poppins', sans-serif" }}>
+          <Download className="mr-2 w-4 h-4" />
+          Download Free Version
+        </Button>
+      </a>
+    );
+  }
+  return (
+    <Link href="/product">
+      <Button size={size} className={className} style={{ fontFamily: "'Poppins', sans-serif" }}>
+        <Download className="mr-2 w-4 h-4" />
+        Download Free Version
+      </Button>
+    </Link>
+  );
+}
+
+function PremiumCTA({ className, size }: { className?: string; size?: "default" | "lg" | "sm" }) {
+  if (isConfigured(PREMIUM_CHECKOUT_URL)) {
+    return (
+      <a href={PREMIUM_CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
+        <Button size={size} className={className} style={{ fontFamily: "'Poppins', sans-serif" }}>
+          Get Premium — $17
+          <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
+      </a>
+    );
+  }
+  return (
+    <Link href="/product">
+      <Button size={size} className={className} style={{ fontFamily: "'Poppins', sans-serif" }}>
+        Get Premium — $17
+        <ArrowRight className="ml-2 w-4 h-4" />
+      </Button>
+    </Link>
+  );
+}
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -102,8 +146,7 @@ export default function Home() {
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-    // TODO: Connect newsletter — set NEWSLETTER_ENDPOINT in src/config.ts
-    if (NEWSLETTER_ENDPOINT) {
+    if (isConfigured(NEWSLETTER_ENDPOINT)) {
       try {
         await fetch(NEWSLETTER_ENDPOINT, {
           method: "POST",
@@ -111,7 +154,7 @@ export default function Home() {
           body: JSON.stringify({ email }),
         });
       } catch {
-        // Silently continue
+        // fail silently — still show success state
       }
     }
     setSubmitted(true);
@@ -120,7 +163,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
 
-      {/* ── HERO ── */}
+      {/* ── HERO — Brand intro ── */}
       <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-[#FECFA5]/50">
         <div className="container">
           <div className="max-w-2xl mx-auto text-center">
@@ -134,7 +177,7 @@ export default function Home() {
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-[#F16953]" />
-              Free download — no email required
+              Gadgets · Tools · Honest recommendations
             </motion.div>
 
             {/* Headline */}
@@ -146,8 +189,8 @@ export default function Home() {
               className="text-4xl md:text-5xl font-bold text-[#495E79] leading-tight mb-5"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Your investing life,{" "}
-              <span className="text-[#F16953]">organized in one place.</span>
+              Practical tools and curated finds{" "}
+              <span className="text-[#F16953]">for smarter everyday decisions.</span>
             </motion.h1>
 
             {/* Sub */}
@@ -159,37 +202,64 @@ export default function Home() {
               className="text-lg text-[#5F7C84] leading-relaxed mb-8"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              The Portfolio Planner is a beginner-friendly workbook for mapping your
-              finances, reviewing your holdings, and building a clear 90-day action plan.
-              Start with the free version — upgrade when you're ready.
+              Roobens Finds curates gadgets, practical tools, and honest recommendations — so you can spend less time researching and more time doing.
             </motion.p>
 
-            {/* CTAs */}
+            {/* Brand pillars */}
             <motion.div
               variants={fadeUp}
               initial="hidden"
               animate="visible"
               custom={3}
-              className="flex flex-col sm:flex-row gap-3 justify-center mb-8"
+              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10 text-left"
             >
-              <Link href="/product#free">
+              {[
+                { icon: <Package className="w-4 h-4" />, label: "Digital Tools", sub: "Planners & templates" },
+                { icon: <Lightbulb className="w-4 h-4" />, label: "Curated Finds", sub: "Honest picks" },
+                { icon: <BookMarked className="w-4 h-4" />, label: "Guides & Reviews", sub: "Clear, practical" },
+                { icon: <TrendingUp className="w-4 h-4" />, label: "Smart Decisions", sub: "Practical & clear" },
+              ].map((p) => (
+                <div
+                  key={p.label}
+                  className="bg-[#FAF9F7] border border-[#FECFA5] rounded-xl p-3 flex flex-col gap-1"
+                >
+                  <span className="text-[#F16953]">{p.icon}</span>
+                  <span className="text-[#495E79] font-semibold text-xs" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                    {p.label}
+                  </span>
+                  <span className="text-[#5F7C84] text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                    {p.sub}
+                  </span>
+                </div>
+              ))}
+            </motion.div>
+
+            {/* Primary CTAs — direct to download / checkout */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              animate="visible"
+              custom={4}
+              className="flex flex-col sm:flex-row gap-3 justify-center mb-6"
+            >
+              <Link href="/finds">
                 <Button
                   size="lg"
                   className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-8 shadow-lg shadow-[#F16953]/25 text-base w-full sm:w-auto"
                   style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
-                  <Download className="mr-2 w-4 h-4" />
-                  Download Free Version
+                  Browse Finds
+                  <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
-              <Link href="/product#premium">
+              <Link href="/tools">
                 <Button
                   size="lg"
                   variant="outline"
                   className="border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold px-8 text-base w-full sm:w-auto transition-all"
                   style={{ fontFamily: "'Poppins', sans-serif" }}
                 >
-                  See Premium — $17
+                  View Tools
                   <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </Link>
@@ -200,11 +270,11 @@ export default function Home() {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
-              custom={4}
+              custom={5}
               className="flex flex-wrap items-center justify-center gap-4 text-sm text-[#5F7C84]"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              {["No account needed", "Instant PDF download", "One-time $17 for Premium"].map((t) => (
+              {["Free tools available", "Curated honest picks", "No fluff, no spam"].map((t) => (
                 <span key={t} className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-[#F16953]" />
                   {t}
@@ -212,15 +282,35 @@ export default function Home() {
               ))}
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* ── FLAGSHIP TOOL — Portfolio Planner ── */}
+      <section className="py-16 bg-[#FAF9F7]">
+        <div className="container">
+          <div className="text-center mb-10">
+            <p
+              className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
+              style={{ fontFamily: "'Poppins', sans-serif" }}
+            >
+              Flagship Tool — Available Now
+            </p>
+            <h2
+              className="text-2xl md:text-3xl font-bold text-[#495E79]"
+              style={{ fontFamily: "'Poppins', sans-serif" }}
+            >
+              Your financial life, organized in one place.
+            </h2>
+            <p
+              className="text-[#5F7C84] mt-3 max-w-xl mx-auto text-base"
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              The Portfolio Planner is a beginner-friendly digital workbook for mapping your money, goals, and financial snapshot — available free or as a one-time $17 premium upgrade.
+            </p>
+          </div>
 
           {/* Product preview card */}
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="visible"
-            custom={5}
-            className="mt-14 max-w-3xl mx-auto"
-          >
+          <div className="max-w-3xl mx-auto mb-10">
             <div className="bg-white rounded-2xl border border-[#FECFA5] shadow-xl shadow-[#495E79]/8 overflow-hidden">
               <div className="bg-[#495E79] px-6 py-4 flex items-center gap-3">
                 <img src={LOGO_PRIMARY} alt="Roobens Finds" className="h-7 w-auto" />
@@ -254,70 +344,17 @@ export default function Home() {
                 ))}
               </div>
             </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ── PROBLEM STATEMENT ── */}
-      <section className="py-16 bg-[#FAF9F7]">
-        <div className="container max-w-2xl mx-auto text-center">
-          <p
-            className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-3"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            Sound familiar?
-          </p>
-          <h2
-            className="text-2xl md:text-3xl font-bold text-[#495E79] mb-5"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            You have accounts, apps, and ideas — but no clear picture.
-          </h2>
-          <p
-            className="text-[#5F7C84] text-base leading-relaxed"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Most beginner investors know they should be doing something — but between
-            scattered accounts, conflicting advice, and no single place to see everything,
-            it's hard to know where to start. The Portfolio Planner gives you that starting point.
-          </p>
-        </div>
-      </section>
-
-      {/* ── FREE vs PREMIUM SPLIT ── */}
-      <section className="py-16 bg-white border-y border-[#FECFA5]/50">
-        <div className="container">
-          <div className="text-center mb-10">
-            <p
-              className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
-              Two versions
-            </p>
-            <h2
-              className="text-2xl md:text-3xl font-bold text-[#495E79]"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
-              Start free. Upgrade when you're ready.
-            </h2>
           </div>
 
+          {/* Free vs Premium — direct CTAs */}
           <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {/* Free */}
             <div className="rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3
-                  className="text-lg font-bold text-[#495E79]"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
+                <h3 className="text-lg font-bold text-[#495E79]" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   Free Version
                 </h3>
-                <span
-                  className="text-2xl font-bold text-[#495E79]"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  $0
-                </span>
+                <span className="text-2xl font-bold text-[#495E79]" style={{ fontFamily: "'Poppins', sans-serif" }}>$0</span>
               </div>
               <ul className="space-y-2.5 mb-6">
                 {freeFeatures.map((f) => (
@@ -327,42 +364,25 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Link href="/product#free">
-                <Button
-                  variant="outline"
-                  className="w-full border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold transition-all"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  <Download className="mr-2 w-4 h-4" />
-                  Download Free
-                </Button>
-              </Link>
+              <FreeCTA className="w-full border border-[#495E79]/30 bg-transparent text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold transition-all" />
+              <p className="text-center text-xs text-[#5F7C84] mt-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                No email required. Instant download.
+              </p>
             </div>
 
             {/* Premium */}
             <div className="rounded-xl border-2 border-[#F16953] bg-white p-6 relative shadow-lg shadow-[#F16953]/10">
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <span
-                  className="bg-[#F16953] text-white text-xs font-bold px-3 py-1 rounded-full"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
+                <span className="bg-[#F16953] text-white text-xs font-bold px-3 py-1 rounded-full" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   Most Complete
                 </span>
               </div>
               <div className="flex items-center justify-between mb-4">
-                <h3
-                  className="text-lg font-bold text-[#495E79]"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
+                <h3 className="text-lg font-bold text-[#495E79]" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   Premium Edition
                 </h3>
                 <div className="text-right">
-                  <span
-                    className="text-2xl font-bold text-[#F16953]"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    $17
-                  </span>
+                  <span className="text-2xl font-bold text-[#F16953]" style={{ fontFamily: "'Poppins', sans-serif" }}>$17</span>
                   <p className="text-xs text-[#5F7C84]" style={{ fontFamily: "'DM Sans', sans-serif" }}>one-time</p>
                 </div>
               </div>
@@ -374,35 +394,36 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Link href="/product#premium">
-                <Button
-                  className="w-full bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/20"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Get Premium — $17
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
+              <PremiumCTA className="w-full bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/20" />
+              <p className="text-center text-xs text-[#5F7C84] mt-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                One-time payment. Instant download. PDF + DOCX included.
+              </p>
             </div>
+          </div>
+
+          {/* Optional detail link — secondary path only */}
+          <div className="text-center mt-6">
+            <Link href="/product">
+              <span
+                className="text-sm text-[#5F7C84] hover:text-[#F16953] underline underline-offset-2 transition-colors"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                View full product details →
+              </span>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ── BENEFITS ── */}
-      <section className="py-16 bg-[#FAF9F7]">
+      <section className="py-16 bg-white border-y border-[#FECFA5]/50">
         <div className="container">
           <div className="text-center mb-10">
-            <p
-              className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
               What you get
             </p>
-            <h2
-              className="text-2xl md:text-3xl font-bold text-[#495E79]"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
-              Everything you need to get started.
+            <h2 className="text-2xl md:text-3xl font-bold text-[#495E79]" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              What the Portfolio Planner gives you.
             </h2>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 max-w-4xl mx-auto">
@@ -414,21 +435,15 @@ export default function Home() {
                 whileInView="visible"
                 viewport={{ once: true }}
                 custom={i * 0.5}
-                className="bg-white rounded-xl p-5 border border-[#FECFA5]/60 hover:border-[#F16953]/30 hover:shadow-md transition-all"
+                className="bg-[#FAF9F7] rounded-xl p-5 border border-[#FECFA5]/60 hover:border-[#F16953]/30 hover:shadow-md transition-all"
               >
                 <div className="w-9 h-9 rounded-lg bg-[#F16953]/10 flex items-center justify-center text-[#F16953] mb-3">
                   {b.icon}
                 </div>
-                <h3
-                  className="font-semibold text-[#495E79] mb-1.5 text-sm"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
+                <h3 className="font-semibold text-[#495E79] mb-1.5 text-sm" style={{ fontFamily: "'Poppins', sans-serif" }}>
                   {b.title}
                 </h3>
-                <p
-                  className="text-[#5F7C84] text-sm leading-relaxed"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
+                <p className="text-[#5F7C84] text-sm leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   {b.desc}
                 </p>
               </motion.div>
@@ -438,19 +453,13 @@ export default function Home() {
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <section className="py-16 bg-white border-y border-[#FECFA5]/50">
+      <section className="py-16 bg-[#FAF9F7] border-b border-[#FECFA5]/50">
         <div className="container">
           <div className="text-center mb-10">
-            <p
-              className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
               What people say
             </p>
-            <h2
-              className="text-2xl md:text-3xl font-bold text-[#495E79]"
-              style={{ fontFamily: "'Poppins', sans-serif" }}
-            >
+            <h2 className="text-2xl md:text-3xl font-bold text-[#495E79]" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Real feedback from real users.
             </h2>
           </div>
@@ -463,32 +472,19 @@ export default function Home() {
                 whileInView="visible"
                 viewport={{ once: true }}
                 custom={i * 0.5}
-                className="bg-[#FAF9F7] rounded-xl p-5 border border-[#FECFA5]/60"
+                className="bg-white rounded-xl p-5 border border-[#FECFA5]/60"
               >
                 <div className="flex gap-0.5 mb-3">
                   {Array.from({ length: t.stars }).map((_, j) => (
                     <Star key={j} className="w-3.5 h-3.5 fill-[#F16953] text-[#F16953]" />
                   ))}
                 </div>
-                <p
-                  className="text-[#495E79] text-sm leading-relaxed mb-4 italic"
-                  style={{ fontFamily: "'DM Sans', sans-serif" }}
-                >
+                <p className="text-[#495E79] text-sm leading-relaxed mb-4 italic" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                   "{t.quote}"
                 </p>
                 <div>
-                  <p
-                    className="text-[#495E79] font-semibold text-sm"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    {t.name}
-                  </p>
-                  <p
-                    className="text-[#5F7C84] text-xs"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    {t.role}
-                  </p>
+                  <p className="text-[#495E79] font-semibold text-sm" style={{ fontFamily: "'Poppins', sans-serif" }}>{t.name}</p>
+                  <p className="text-[#5F7C84] text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>{t.role}</p>
                 </div>
               </motion.div>
             ))}
@@ -496,27 +492,52 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── SHOP CTA BAND ── */}
+      <section className="py-14 bg-[#FECFA5]/30 border-b border-[#FECFA5]">
+        <div className="container">
+          <div className="max-w-3xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                Roobens Finds Shop
+              </p>
+              <h2 className="text-xl md:text-2xl font-bold text-[#495E79]" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                Browse digital products and curated items.
+              </h2>
+              <p className="text-[#5F7C84] text-sm mt-2" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                All our digital downloads, planners, and hand-picked finds — in one place.
+              </p>
+            </div>
+            <a
+              href={SHOP_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0"
+            >
+              <Button
+                size="lg"
+                className="bg-[#495E79] hover:bg-[#3a4f6a] text-white font-semibold px-8 shadow-md shadow-[#495E79]/20 whitespace-nowrap"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                Visit the Shop
+                <ExternalLink className="ml-2 w-4 h-4" />
+              </Button>
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── EMAIL CAPTURE ── */}
       <section className="py-16 bg-[#495E79]">
         <div className="container max-w-xl mx-auto text-center">
-          <p
-            className="text-xs font-semibold uppercase tracking-widest text-[#FECFA5] mb-3"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
+          <p className="text-xs font-semibold uppercase tracking-widest text-[#FECFA5] mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Stay in the loop
           </p>
-          <h2
-            className="text-2xl md:text-3xl font-bold text-white mb-3"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            Get new tools and investing tips — free.
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+            New tools, finds, and guides — free.
           </h2>
-          <p
-            className="text-white/65 text-sm mb-7"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
+          <p className="text-white/65 text-sm mb-7" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Join the Roobens Finds list. No spam, no fluff — just practical content
-            and early access to new tools.
+            and early access to new tools and finds.
           </p>
           {submitted ? (
             <div className="bg-white/10 rounded-xl px-6 py-5 text-white font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>
@@ -542,58 +563,8 @@ export default function Home() {
               </Button>
             </form>
           )}
-          <p
-            className="text-white/40 text-xs mt-3"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
+          <p className="text-white/40 text-xs mt-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Unsubscribe anytime. No spam, ever.
-          </p>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ── */}
-      <section className="py-16 bg-[#FAF9F7]">
-        <div className="container max-w-xl mx-auto text-center">
-          <h2
-            className="text-2xl md:text-3xl font-bold text-[#495E79] mb-4"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            Ready to get organized?
-          </h2>
-          <p
-            className="text-[#5F7C84] mb-7"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Download the free version now — no account, no email required.
-            Upgrade to Premium when you want the full workbook.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link href="/product#free">
-              <Button
-                size="lg"
-                className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-8 shadow-lg shadow-[#F16953]/25 w-full sm:w-auto"
-                style={{ fontFamily: "'Poppins', sans-serif" }}
-              >
-                <Download className="mr-2 w-4 h-4" />
-                Download Free Version
-              </Button>
-            </Link>
-            <Link href="/product">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold px-8 w-full sm:w-auto transition-all"
-                style={{ fontFamily: "'Poppins', sans-serif" }}
-              >
-                View Full Product Details
-              </Button>
-            </Link>
-          </div>
-          <p
-            className="text-[#5F7C84]/60 text-xs mt-5"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Educational tool only. Not financial advice.
           </p>
         </div>
       </section>
