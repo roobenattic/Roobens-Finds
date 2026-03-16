@@ -164,9 +164,10 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAF9F7]">
 
       {/* ── HERO — Brand intro ── */}
-      <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-[#FECFA5]/50">
-        <div className="container">
-          <div className="max-w-2xl mx-auto text-center">
+     <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-[#FECFA5]/50">
+      <div className="container">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+          <div className="max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
             {/* Badge */}
             <motion.div
               variants={fadeUp}
