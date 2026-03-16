@@ -119,7 +119,7 @@ export default function Contact() {
                       className="text-[#5F7C84] text-xs"
                       style={{ fontFamily: "'DM Sans', sans-serif" }}
                     >
-                      info@roobensfinds.com
+                      support@roobensfinds.com
                     </div>
                   </div>
                 </a>
