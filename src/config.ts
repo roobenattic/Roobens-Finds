@@ -26,7 +26,7 @@ export const SOCIAL = {
 // ── Product: Free Download ────────────────────────────────────
 // TODO: Upload your free PDF to a file host (Google Drive, Gumroad, AWS S3, etc.)
 //       then replace the URL below with the direct download link.
-export const FREE_DOWNLOAD_URL = "https://docs.google.com/document/d/1QkB5ETm7Gh5-1Jfh_LSRJtirEYyRvgKh/edit"; // e.g. "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
+export const FREE_DOWNLOAD_URL = "https://drive.google.com/drive/u/0/home"; // e.g. "https://drive.google.com/uc?export=download&id=YOUR_FILE_ID"
 
 // ── Product: Premium Checkout ─────────────────────────────────
 // TODO: Create a product listing on Gumroad or Stripe, then paste the checkout URL below.
