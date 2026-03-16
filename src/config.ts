@@ -30,7 +30,7 @@ export const FREE_DOWNLOAD_URL = "https://drive.google.com/drive/u/0/home"; // e
 
 // ── Product: Premium Checkout ─────────────────────────────────
 // TODO: Create a product listing on Gumroad or Stripe, then paste the checkout URL below.
-export const PREMIUM_CHECKOUT_URL = ""; // e.g. "https://yourname.gumroad.com/l/portfolio-planner"
+export const PREMIUM_CHECKOUT_URL = "export const PREMIUM_CHECKOUT_URL = "https://roobensdume.gumroad.com/l/portfolio-planner-premium?wanted=true"; // e.g. "https://yourname.gumroad.com/l/portfolio-planner"
 
 // ── Email Newsletter ──────────────────────────────────────────
 // TODO: Set up a Mailchimp / ConvertKit / Beehiiv list.
