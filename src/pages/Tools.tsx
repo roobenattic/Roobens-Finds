@@ -20,6 +20,7 @@ import {
   Star,
   ChevronDown,
 } from "lucide-react";
+import { FREE_DOWNLOAD_URL, PREMIUM_CHECKOUT_URL, isConfigured } from "@/config";
 
 const PRODUCT_MOCKUP = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/product-mockup-JTHwG2mphwMYfjMFiBKXCW.webp";
 
@@ -37,7 +38,7 @@ const tools = [
     badgeColor: "bg-[#F16953] text-white",
     category: "Investing",
     features: [
-      "Basic portfolio tracker (Free )",
+      "Basic portfolio tracker (Free)",
       "Dividend income log (Premium)",
       "Asset allocation view (Premium)",
       "Goal planner & review templates",
@@ -45,8 +46,8 @@ const tools = [
       "Beginner investing guide",
     ],
     href: "/product",
-    freeHref: "/product#free",
-    premiumHref: "/product#premium",
+    freeHref: FREE_DOWNLOAD_URL,
+    premiumHref: PREMIUM_CHECKOUT_URL,
     image: PRODUCT_MOCKUP,
   },
   {
@@ -126,9 +127,7 @@ const tools = [
 const categories = [
   { label: "All Tools", count: 4 },
   { label: "Investing", count: 1 },
-  { label: "Budgeting", count: 1 },
-  { label: "Savings", count: 1 },
-  { label: "Debt", count: 1 },
+  { label: "Coming Soon", count: 3 },
 ];
 
 export default function Tools() {
@@ -138,13 +137,15 @@ export default function Tools() {
   const filteredTools =
     activeCategory === "All Tools"
       ? tools
+      : activeCategory === "Coming Soon"
+      ? tools.filter((t) => t.status !== "live")
       : tools.filter((t) => t.category === activeCategory);
 
   const activeCat = categories.find((c) => c.label === activeCategory) ?? categories[0];
 
   function selectCategory(label: string) {
     setActiveCategory(label);
-    setMobileOpen(false);
+    setMobileOpen(false); // auto-collapse on selection
   }
 
   return (
@@ -187,7 +188,7 @@ export default function Tools() {
       <section className="bg-white border-b border-[#FECFA5] sticky top-16 z-30">
         <div className="container">
 
-          {/* Mobile: collapsible trigger */}
+          {/* ── Mobile: collapsible trigger ── */}
           <div className="md:hidden py-2.5">
             <button
               onClick={() => setMobileOpen((o) => !o)}
@@ -207,6 +208,7 @@ export default function Tools() {
               />
             </button>
 
+            {/* Dropdown options */}
             {mobileOpen && (
               <div className="mt-2 rounded-xl border border-[#FECFA5] bg-white shadow-lg shadow-[#495E79]/5 overflow-hidden">
                 {categories.map((cat) => {
@@ -235,7 +237,7 @@ export default function Tools() {
             )}
           </div>
 
-          {/* Desktop: standard pill row */}
+          {/* ── Desktop: standard pill row (unchanged) ── */}
           <div className="hidden md:flex items-center gap-2 py-3 flex-wrap">
             {categories.map((cat) => {
               const isActive = cat.label === activeCategory;
@@ -278,6 +280,7 @@ export default function Tools() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
                   {/* Content */}
                   <div className="lg:col-span-8 p-7 md:p-8">
+                    {/* Header */}
                     <div className="flex items-start gap-4 mb-5">
                       <div className={`w-12 h-12 rounded-sm flex items-center justify-center flex-shrink-0 ${
                         tool.status === "live" ? "bg-[#F16953]/15 text-[#F16953]" : "bg-[#FAF9F7] text-[#495E79]/30"
@@ -303,6 +306,7 @@ export default function Tools() {
                       {tool.desc}
                     </p>
 
+                    {/* Features */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-6">
                       {tool.features.map((f, i) => (
                         <div key={i} className="flex items-center gap-2">
@@ -314,20 +318,39 @@ export default function Tools() {
                       ))}
                     </div>
 
+                    {/* CTA */}
                     {tool.status === "live" ? (
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        <Link href={tool.freeHref!}>
-                          <Button variant="outline" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                            <Download className="mr-2 w-4 h-4" />
-                            Get Free Version
-                          </Button>
-                        </Link>
-                        <Link href={tool.premiumHref!}>
-                          <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                            Get Premium — $17
-                            <ArrowRight className="ml-2 w-4 h-4" />
-                          </Button>
-                        </Link>
+                        {isConfigured(tool.freeHref ?? "") ? (
+                          <a href={tool.freeHref!} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                              <Download className="mr-2 w-4 h-4" />
+                              Get Free Version
+                            </Button>
+                          </a>
+                        ) : (
+                          <Link href="/product">
+                            <Button variant="outline" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                              <Download className="mr-2 w-4 h-4" />
+                              Get Free Version
+                            </Button>
+                          </Link>
+                        )}
+                        {isConfigured(tool.premiumHref ?? "") ? (
+                          <a href={tool.premiumHref!} target="_blank" rel="noopener noreferrer">
+                            <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                              Get Premium — $17
+                              <ArrowRight className="ml-2 w-4 h-4" />
+                            </Button>
+                          </a>
+                        ) : (
+                          <Link href="/product">
+                            <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                              Get Premium — $17
+                              <ArrowRight className="ml-2 w-4 h-4" />
+                            </Button>
+                          </Link>
+                        )}
                         <Link href={tool.href}>
                           <span className="text-[#495E79]/50 text-sm hover:text-[#F16953] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                             Full details →
@@ -374,6 +397,7 @@ export default function Tools() {
               </div>
             ))}
 
+            {/* Empty state when a category has no tools yet */}
             {filteredTools.length === 0 && (
               <div className="text-center py-16 text-[#495E79]/40" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                 <p className="text-base">No tools in this category yet.</p>
