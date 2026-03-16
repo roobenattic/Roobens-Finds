@@ -15,6 +15,7 @@ import Tools from "./pages/Tools";
 import Privacy from "./pages/Privacy";
 import Terms from "./pages/Terms";
 import Disclaimer from "./pages/Disclaimer";
+import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 
 // Scroll to top on route change
