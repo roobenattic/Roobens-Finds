@@ -13,7 +13,7 @@ export const FREE_DOWNLOAD_URL = "https://drive.google.com/uc?export=download&id
 
 // Premium checkout: direct link to Gumroad, Stripe, or Payhip checkout page.
 // When set, the "Get Premium — $17" button opens this URL directly — no intermediate page.
-export const PREMIUM_CHECKOUT_URL = "https://roobensdume.gumroad.com/l/portfolio-planner-premium?wanted=true"; // TODO: replace with real URL
+export const PREMIUM_CHECKOUT_URL = "https://roobensfinds.gumroad.com/l/portfolio-planner-premium?wanted=true"; // TODO: replace with real URL
 
 // ── FORMS ─────────────────────────────────────────────────────────────────────
 // Newsletter signup endpoint (e.g. Formspree, Mailchimp, ConvertKit)
