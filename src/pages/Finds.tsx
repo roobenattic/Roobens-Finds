@@ -43,7 +43,7 @@ const finds: Find[] = [
   subtitle: "Portable charger",
   desc: "The most reliable portable charger we've used. Slim enough to carry daily, powerful enough to charge a phone twice or keep a laptop alive on the go. No drama, no dead batteries.",
   pros: ["Slim and lightweight", "Dual USB-A + USB-C", "Fast charging support", "Reliable brand"],
-  price: "$25–$35",
+  price: "$35",
   rating: 4.5,
   badge: "Daily Carry",
   href: "https://amzn.to/4sRMpvF",
