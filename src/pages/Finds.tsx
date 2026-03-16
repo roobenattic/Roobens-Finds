@@ -32,44 +32,50 @@ interface Find {
   badge?: string;
   href: string;
   affiliate: boolean;
+  image: string:
 }
 
 const finds: Find[] = [
   {
-    category: "Gadgets",
-    title: "Anker 10,000mAh Power Bank",
-    subtitle: "Portable charger",
-    desc: "The most reliable portable charger we've used. Slim enough to carry daily, powerful enough to charge a phone twice or keep a laptop alive on the go. No drama, no dead batteries.",
-    pros: ["Slim and lightweight", "Dual USB-A + USB-C", "Fast charging support", "Reliable brand"],
-    price: "~$25–$35",
-    rating: 4.5,
-    badge: "Daily Carry",
-    href: "https://amzn.to/4sRMpvF",
-    affiliate: yes,
-  },
-    {
-    category: "Gadgets",
-    title: "Belkin 3-in-1 Wireless Charger",
-    subtitle: "Multi-device charging pad",
-    desc: "Charge your phone, earbuds, and smartwatch at the same time without hunting for cables. Clean desk, less clutter, one less thing to think about.",
-    pros: ["Charges 3 devices at once", "No cable mess", "Compatible with MagSafe", "Compact footprint"],
-    price: "~$130",
-    rating: 4.4,
-    badge: "Desk Essential",
-    href: "https://amzn.to/4beh6VL",
-    affiliate: yes,
-  },
-  {
-    category: "Creator Gear",
-    title: "Logitech MX Keys",
-    subtitle: "Wireless keyboard",
-    desc: "The keyboard we use every day for writing, planning, and content creation. Quiet, comfortable, and built for long sessions. Works across Mac, Windows, and iPad seamlessly.",
-    pros: ["Multi-device pairing", "Backlit keys", "Comfortable for long typing sessions", "USB-C charging"],
-    price: "~$119",
-    rating: 4.5,
-    badge: "Daily Driver",
-    href: "https://amzn.to/4uvbEFs",
-    affiliate: yes,
+   {
+  category: "Gadgets",
+  title: "Anker 10,000mAh Power Bank",
+  subtitle: "Portable charger",
+  desc: "The most reliable portable charger we've used. Slim enough to carry daily, powerful enough to charge a phone twice or keep a laptop alive on the go. No drama, no dead batteries.",
+  pros: ["Slim and lightweight", "Dual USB-A + USB-C", "Fast charging support", "Reliable brand"],
+  price: "$25–$35",
+  rating: 4.5,
+  badge: "Daily Carry",
+  href: "https://amzn.to/4sRMpvF",
+  affiliate: true,
+  image: "/finds/anker-10000.jpg"
+},
+{
+  category: "Gadgets",
+  title: "Belkin 3-in-1 Wireless Charger",
+  subtitle: "Multi-device charging pad",
+  desc: "Charge your phone, earbuds, and smartwatch at the same time without hunting for cables. Clean desk, less clutter, one less thing to think about.",
+  pros: ["Charges 3 devices at once", "No cable mess", "Compatible with MagSafe", "Compact footprint"],
+  price: "$130",
+  rating: 4.4,
+  badge: "Desk Essential",
+  href: "https://amzn.to/4beh6VL",
+  affiliate: true,
+  image: "/finds/belkin-3in1.jpg"
+},
+{
+  category: "Creator Gear",
+  title: "Logitech MX Keys",
+  subtitle: "Wireless keyboard",
+  desc: "The keyboard we use every day for writing, planning, and content creation. Quiet, comfortable, and built for long sessions. Works across Mac, Windows, and iPad seamlessly.",
+  pros: ["Multi-device pairing", "Backlit keys", "Comfortable for long typing sessions", "USB-C charging"],
+  price: "$119",
+  rating: 4.5,
+  badge: "Daily Driver",
+  href: "https://amzn.to/4uvbEFs",
+  affiliate: true,
+  image: "/finds/logitech-mx-keys.jpg"
+}
   },
   
   function StarRating({ rating }: { rating: number }) {
