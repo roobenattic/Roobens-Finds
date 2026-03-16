@@ -1,6 +1,6 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
+import Finds from "./pages/Finds";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
@@ -41,7 +41,7 @@ function Router() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/disclaimer" component={Disclaimer} />
-        <Route path="/404" component={NotFound} />
+        <Route path="/finds" component={Finds} />
         <Route component={NotFound} />
       </Switch>
       <Footer />
