@@ -13,7 +13,7 @@ import { FREE_DOWNLOAD_URL, PREMIUM_CHECKOUT_URL, isConfigured } from "@/config"
 const LOGO_DARK = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/RF_primary_logo_coral_4c3da9c0.png";
 
 const navLinks = [
-  { label: "Home", href: "/" },
+  { label: "Home", href: "/finds" },
   { label: "Tools", href: "/tools" },
   { label: "Finds", href: "/finds" },
   { label: "Blog", href: "/blog" },
