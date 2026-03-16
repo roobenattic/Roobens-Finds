@@ -37,7 +37,6 @@ interface Find {
 
 const finds: Find[] = [
 {
- {
   category: "Gadgets",
   title: "Anker 10,000mAh Power Bank",
   subtitle: "Portable charger",
