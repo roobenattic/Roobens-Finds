@@ -75,7 +75,7 @@ const finds: Find[] = [
   affiliate: true,
   image: "/finds/logitech-mx-key.jpg"
 }
-  ],
+  ];
   
   function StarRating({ rating }: { rating: number }) {
   return (
