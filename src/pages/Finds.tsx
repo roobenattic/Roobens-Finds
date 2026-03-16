@@ -32,7 +32,7 @@ interface Find {
   badge?: string;
   href: string;
   affiliate: boolean;
-  image: string:
+  image: string;
 }
 
 const finds: Find[] = [
@@ -74,7 +74,7 @@ const finds: Find[] = [
   badge: "Daily Driver",
   href: "https://amzn.to/4uvbEFs",
   affiliate: true,
-  image: "/finds/logitech-mx-keys.jpg"
+  image: "/finds/logitech-mx-key.jpg"
 }
   },
   
