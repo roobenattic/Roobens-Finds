@@ -65,7 +65,7 @@ const finds: Find[] = [
 },
 {
   category: "Creator Gear",
-  title: "Logitech MX Keys",
+  title: "Logitech MX Key",
   subtitle: "Wireless keyboard",
   desc: "The keyboard we use every day for writing, planning, and content creation. Quiet, comfortable, and built for long sessions. Works across Mac, Windows, and iPad seamlessly.",
   pros: ["Multi-device pairing", "Backlit keys", "Comfortable for long typing sessions", "USB-C charging"],
