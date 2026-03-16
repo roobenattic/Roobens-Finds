@@ -84,17 +84,6 @@ const finds: Find[] = [
   },
   {
     category: "Creator Gear",
-    title: "Blue Yeti USB Microphone",
-    subtitle: "USB condenser mic",
-    desc: "A reliable, plug-and-play microphone for podcasts, voiceovers, and online meetings. Sounds professional without a complicated setup. Great starting point for any creator.",
-    pros: ["Plug-and-play USB", "Multiple pickup patterns", "Built-in headphone monitoring", "Solid build quality"],
-    price: "~$129",
-    rating: 4,
-    href: "https://www.bluemic.com/en-us/products/yeti/",
-    affiliate: false,
-  },
-  {
-    category: "Creator Gear",
     title: "Notion",
     subtitle: "All-in-one workspace",
     desc: "Where we plan content, track ideas, manage projects, and write drafts. Flexible enough to replace five different apps. Free tier is genuinely useful.",
