@@ -5,6 +5,7 @@
  * CTA Rule: Free → FREE_DOWNLOAD_URL direct | Premium → PREMIUM_CHECKOUT_URL direct
  * Sections: Hero → Flagship Tool (free/premium) → Benefits → Testimonials → Email capture
  */
+
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
