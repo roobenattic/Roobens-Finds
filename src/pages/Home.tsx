@@ -164,127 +164,142 @@ export default function Home() {
     <div className="min-h-screen bg-[#FAF9F7]">
 
       {/* ── HERO — Brand intro ── */}
-     <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-[#FECFA5]/50">
-      <div className="container">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-          <div className="max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
-            {/* Badge */}
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={0}
-              className="inline-flex items-center gap-2 bg-[#FECFA5]/40 text-[#495E79] text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6 border border-[#FECFA5]"
+   <section className="pt-28 pb-20 md:pt-36 md:pb-28 bg-white border-b border-[#FECFA5]/50">
+  <div className="container">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+      {/* Left column */}
+      <div className="max-w-2xl mx-auto lg:mx-0 text-center lg:text-left">
+        {/* Badge */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={0}
+          className="inline-flex items-center gap-2 bg-[#FECFA5]/40 text-[#495E79] text-xs font-semibold px-3.5 py-1.5 rounded-full mb-6 border border-[#FECFA5]"
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[#F16953]" />
+          Gadgets • Tools • Honest recommendations
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={1}
+          className="text-4xl md:text-5xl font-bold text-[#495E79] leading-tight mb-5"
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+        >
+          Practical tools and curated finds{" "}
+          <span className="text-[#F16953]">
+            for smarter everyday decisions.
+          </span>
+        </motion.h1>
+
+        {/* Sub */}
+        <motion.p
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={2}
+          className="text-lg text-[#5F7C84] leading-relaxed mb-8 max-w-xl mx-auto lg:mx-0"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Roobens Finds curates gadgets, practical tools, and honest
+          recommendations — so you can spend less time researching and more
+          time doing.
+        </motion.p>
+
+        {/* Brand pillars */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={3}
+          className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10 text-left"
+        >
+          {[
+            { icon: <Package className="w-4 h-4" />, label: "Digital Tools", sub: "Planners & templates" },
+            { icon: <Lightbulb className="w-4 h-4" />, label: "Curated Finds", sub: "Honest picks" },
+            { icon: <BookMarked className="w-4 h-4" />, label: "Guides & Reviews", sub: "Clear, practical" },
+            { icon: <TrendingUp className="w-4 h-4" />, label: "Smart Decisions", sub: "Practical & clear" },
+          ].map((p) => (
+            <div
+              key={p.label}
+              className="bg-[#FAF9F7] border border-[#FECFA5] rounded-xl p-3 flex flex-col gap-1"
+            >
+              <span className="text-[#F16953]">{p.icon}</span>
+              <span
+                className="text-[#495E79] font-semibold text-xs"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                {p.label}
+              </span>
+              <span
+                className="text-[#5F7C84] text-xs"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                {p.sub}
+              </span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Primary CTAs */}
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          custom={4}
+          className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6"
+        >
+          <Link href="/finds">
+            <Button
+              size="lg"
+              className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-8 shadow-lg shadow-[#F16953]/25 text-base w-full sm:w-auto"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-[#F16953]" />
-              Gadgets · Tools · Honest recommendations
-            </motion.div>
+              Browse Finds
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </Link>
 
-            {/* Headline */}
-            <motion.h1
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={1}
-              className="text-4xl md:text-5xl font-bold text-[#495E79] leading-tight mb-5"
+          <Link href="/tools">
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold px-8 text-base w-full sm:w-auto transition-all"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Practical tools and curated finds{" "}
-              <span className="text-[#F16953]">for smarter everyday decisions.</span>
-            </motion.h1>
+              View Tools
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
+          </Link>
+        </motion.div>
+      </div>
 
-            {/* Sub */}
-            <motion.p
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={2}
-              className="text-lg text-[#5F7C84] leading-relaxed mb-8"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            >
-              Roobens Finds curates gadgets, practical tools, and honest recommendations — so you can spend less time researching and more time doing.
-            </motion.p>
+      {/* Right column image */}
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        custom={5}
+        className="relative"
+      >
+        <div className="absolute inset-0 bg-gradient-to-tr from-[#FECFA5]/30 to-[#F16953]/10 rounded-3xl blur-2xl"></div>
 
-            {/* Brand pillars */}
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={3}
-              className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10 text-left"
-            >
-              {[
-                { icon: <Package className="w-4 h-4" />, label: "Digital Tools", sub: "Planners & templates" },
-                { icon: <Lightbulb className="w-4 h-4" />, label: "Curated Finds", sub: "Honest picks" },
-                { icon: <BookMarked className="w-4 h-4" />, label: "Guides & Reviews", sub: "Clear, practical" },
-                { icon: <TrendingUp className="w-4 h-4" />, label: "Smart Decisions", sub: "Practical & clear" },
-              ].map((p) => (
-                <div
-                  key={p.label}
-                  className="bg-[#FAF9F7] border border-[#FECFA5] rounded-xl p-3 flex flex-col gap-1"
-                >
-                  <span className="text-[#F16953]">{p.icon}</span>
-                  <span className="text-[#495E79] font-semibold text-xs" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    {p.label}
-                  </span>
-                  <span className="text-[#5F7C84] text-xs" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                    {p.sub}
-                  </span>
-                </div>
-              ))}
-            </motion.div>
-
-            {/* Primary CTAs — direct to download / checkout */}
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={4}
-              className="flex flex-col sm:flex-row gap-3 justify-center mb-6"
-            >
-              <Link href="/finds">
-                <Button
-                  size="lg"
-                  className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-8 shadow-lg shadow-[#F16953]/25 text-base w-full sm:w-auto"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Browse Finds
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-              <Link href="/tools">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold px-8 text-base w-full sm:w-auto transition-all"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  View Tools
-                  <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
-            </motion.div>
-
-            {/* Trust micro-copy */}
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              animate="visible"
-              custom={5}
-              className="flex flex-wrap items-center justify-center gap-4 text-sm text-[#5F7C84]"
-              style={{ fontFamily: "'DM Sans', sans-serif" }}
-            >
-              {["Free tools available", "Curated honest picks", "No fluff, no spam"].map((t) => (
-                <span key={t} className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#F16953]" />
-                  {t}
-                </span>
-              ))}
-            </motion.div>
-          </div>
+        <div className="relative overflow-hidden rounded-3xl border border-[#FECFA5]/50 shadow-xl bg-white">
+          <img
+            src="/home/hero-office-setup.jpg"
+            alt="Roobens Finds creator desk setup"
+            className="w-full h-[320px] md:h-[420px] object-cover"
+          />
         </div>
-      </section>
+      </motion.div>
+    </div>
+  </div>
+</section>
 
       {/* ── FLAGSHIP TOOL — Portfolio Planner ── */}
       <section className="py-16 bg-[#FAF9F7]">
