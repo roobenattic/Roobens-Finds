@@ -43,9 +43,9 @@ const articles = [
 ];
 
 const categoryColors: Record<string, string> = {
-  "Personal Finance": "bg-[#FECFA5]/50 text-[#495E79]",
-  "Getting Organized": "bg-[#F16953]/10 text-[#F16953]",
-  "Tools & Productivity": "bg-green-50 text-green-700",
+  "Desk set up": "bg-[#FECFA5]/50 text-[#495E79]",
+  "Creator Gear": "bg-[#F16953]/10 text-[#F16953]",
+  "Practical Finds": "bg-green-50 text-green-700",
 };
 
 export default function Blog() {
