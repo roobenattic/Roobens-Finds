@@ -293,7 +293,7 @@ export default function Home() {
           <img
             src="/home/hero-office-setup.jpg"
             alt="Roobens Finds creator desk setup"
-            className="w-full h-[320px] md:h-[420px] object-cover object-center"
+            className="w-full h-[320px] md:h-[420px] object-cover object-[center_35%]"
           />
         </div>
       </motion.div>
