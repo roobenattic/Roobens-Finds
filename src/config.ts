@@ -17,7 +17,8 @@ export const PREMIUM_CHECKOUT_URL = "https://roobensfinds.gumroad.com/l/portfoli
 
 // ── FORMS ─────────────────────────────────────────────────────────────────────
 // Newsletter signup endpoint (e.g. Formspree, Mailchimp, ConvertKit)
-export const NEWSLETTER_ENDPOINT = "YOUR_NEWSLETTER_FORM_ENDPOINT"; // TODO: replace
+export const NEWSLETTER_ENDPOINT = "export const NEWSLETTER_ENDPOINT =
+  "https://buttondown.com/api/emails/embed-subscribe/roobensfinds"; // TODO: replace
 
 // Contact form endpoint (e.g. Formspree: https://formspree.io/f/YOUR_ID)
 export const CONTACT_FORM_ENDPOINT = "YOUR_CONTACT_FORM_ENDPOINT"; // TODO: replace
