@@ -140,7 +140,7 @@ export default function Blog() {
                       className="flex items-center gap-1 text-[#F16953] text-xs font-semibold hover:gap-2 transition-all"
                       style={{ fontFamily: "'DM Sans', sans-serif" }}
                     >
-                      Read More
+                      Read Article
                       <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -167,7 +167,7 @@ export default function Blog() {
               className="text-2xl md:text-3xl font-bold text-white mb-3"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Never Miss a New Article or Tool
+              Get New Guides, Finds, and Tools First
             </h2>
             <p
               className="text-white/60 text-sm mb-6"
@@ -188,7 +188,7 @@ export default function Blog() {
                 className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-6 py-3 rounded-sm text-sm whitespace-nowrap transition-colors"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
-                Subscribe Free
+                Join the Free Newsletter
               </button>
             </form>
           </div>
