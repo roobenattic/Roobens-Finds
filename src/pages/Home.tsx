@@ -5,7 +5,6 @@
  * CTA Rule: Free → FREE_DOWNLOAD_URL direct | Premium → PREMIUM_CHECKOUT_URL direct
  * Sections: Hero → Flagship Tool (free/premium) → Benefits → Testimonials → Email capture
  */
-import { useState } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -140,26 +139,7 @@ function PremiumCTA({ className, size }: { className?: string; size?: "default" 
 }
 
 export default function Home() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email) return;
-    if (isConfigured(NEWSLETTER_ENDPOINT)) {
-      try {
-        await fetch(NEWSLETTER_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email }),
-        });
-      } catch {
-        // fail silently — still show success state
-      }
-    }
-    setSubmitted(true);
-  };
-
+ 
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
 
@@ -542,48 +522,48 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── EMAIL CAPTURE ── */}
-      <section className="py-16 bg-[#495E79]">
-        <div className="container max-w-xl mx-auto text-center">
-          <p className="text-xs font-semibold uppercase tracking-widest text-[#FECFA5] mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            Stay in the loop
-          </p>
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
-            New tools, finds, and guides — free.
-          </h2>
-          <p className="text-white/65 text-sm mb-7" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Join the Roobens Finds list. No spam, no fluff — just practical content
-            and early access to new tools and finds.
-          </p>
-          {submitted ? (
-            <div className="bg-white/10 rounded-xl px-6 py-5 text-white font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              You're in! Check your inbox for a confirmation.
-            </div>
-          ) : (
-            <form onSubmit={handleEmailSubmit} className="flex flex-col sm:flex-row gap-3">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Your email address"
-                required
-                className="flex-1 px-4 py-3 rounded-lg text-[#495E79] bg-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#F16953]/50 text-sm"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              />
-              <Button
-                type="submit"
-                className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-6 shadow-lg shadow-[#F16953]/25 whitespace-nowrap"
-                style={{ fontFamily: "'Poppins', sans-serif" }}
-              >
-                Subscribe Free
-              </Button>
-            </form>
-          )}
-          <p className="text-white/40 text-xs mt-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Unsubscribe anytime. No spam, ever.
-          </p>
-        </div>
-      </section>
-    </div>
-  );
-}
+     {/* ── EMAIL CAPTURE ── */}
+<section className="py-16 bg-[#495E79]">
+  <div className="container max-w-xl mx-auto text-center">
+    <p className="text-xs font-semibold uppercase tracking-widest text-[#FECFA5] mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      Stay in the loop
+    </p>
+    <h2 className="text-2xl md:text-3xl font-bold text-white mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      New tools, finds, and guides — free.
+    </h2>
+    <p className="text-white/65 text-sm mb-7" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      Join the Roobens Finds list. No spam, no fluff — just practical content
+      and early access to new tools and finds.
+    </p>
+
+    <form
+      action={NEWSLETTER_ENDPOINT}
+      method="post"
+      className="flex flex-col sm:flex-row gap-3"
+    >
+      <input
+        type="email"
+        name="email"
+        placeholder="Your email address"
+        required
+        className="flex-1 px-4 py-3 rounded-lg text-[#495E79] bg-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#F16953]/50 text-sm"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+      />
+
+      <input type="hidden" name="embed" value="1" />
+      <input type="hidden" name="tag" value="homepage" />
+
+      <Button
+        type="submit"
+        className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-6 shadow-lg shadow-[#F16953]/25 whitespace-nowrap"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        Subscribe Free
+      </Button>
+    </form>
+
+    <p className="text-white/40 text-xs mt-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      Unsubscribe anytime. No spam, ever.
+    </p>
+  </div>
+</section>
