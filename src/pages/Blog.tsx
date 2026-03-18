@@ -75,7 +75,7 @@ export default function Blog() {
             </div>
             <div className="hidden lg:block">
               <img
-                src="/blog-hero-desk.jpg"
+                src={BLOG_IMG}
                 alt="Practical guides from Roobens Finds"
                 className="w-full rounded-sm shadow-xl"
               />
