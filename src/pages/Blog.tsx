@@ -16,8 +16,8 @@ const articles = [
     excerpt: "Three simple desk gadgets that made my everyday workflow cleaner, easier, and more consistent — without overcomplicating the setup.",
     category: "Practical Finds",
     readTime: "4 min read",
-    date: "March 2026",
-    slug: 
+    date: "March 17, 2026",
+    slug: "3-practical-desk-gadgets-i-actually Use"
   },
   {
     id: 2,
@@ -25,8 +25,8 @@ const articles = [
     excerpt: "A simple look at why this keyboard still works so well for writing, planning, and everyday creator work.",
     category: "Creator Gear",
     readTime: "3 min read",
-    date: "March 2026",
-    slug: "",
+    date: "March 17, 2026",
+    slug: why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk",
   },
   {
     id: 3,
@@ -34,8 +34,8 @@ const articles = [
     excerpt: "The real desk setup I use to stay organized, create content, and keep my workflow simple without too much clutter.",
     category: "Desk Setup",
     readTime: "5 min read",
-    date: "March 2026",
-    slug: "",
+    date: "March 17, 2026",
+    slug: "my-practical-desk-setup-for-work-content-and-everyday-use",
   },
 ];
 
