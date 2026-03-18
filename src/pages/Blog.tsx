@@ -13,32 +13,29 @@ const articles = [
   {
     id: 1,
     title: "3 Practical Desk Gadgets I Actually Use",
-    excerpt:
-      "I used to have five different spreadsheets for five different things. None of them were up to date. Here is what I switched to — and why it actually stuck.",
+    excerpt: "Three simple desk gadgets that made my everyday workflow cleaner, easier, and more consistent — without overcomplicating the setup.",
     category: "Practical Finds",
-    readTime: "5 min read",
-    date: "March 10, 2026",
-    slug: "stopped-using-spreadsheets-to-track-money",
+    readTime: "4 min read",
+    date: "March 2026",
+    slug: 
   },
   {
     id: 2,
     title: "Why the Logitech MX Keys Still Earns a Spot on My Desk",
-    excerpt:
-      "You do not need a financial advisor or a complicated system. You need one focused session and the right structure. Here is exactly how to do it.",
+    excerpt: "A simple look at why this keyboard still works so well for writing, planning, and everyday creator work.",
     category: "Creator Gear",
-    readTime: "6 min read",
-    date: "March 5, 2026",
-    slug: "clear-picture-of-finances-one-afternoon",
+    readTime: "3 min read",
+    date: "March 2026",
+    slug: "",
   },
   {
     id: 3,
     title: "My Practical Desk Setup for Work, Content, and Everyday Use",
-    excerpt:
-      "From digital planners to note-taking apps, here are the tools we rely on every day to stay on top of goals, content, and finances — without the overwhelm.",
+    excerpt: "The real desk setup I use to stay organized, create content, and keep my workflow simple without too much clutter.",
     category: "Desk Setup",
-    readTime: "4 min read",
-    date: "February 20, 2026",
-    slug: "tools-we-use-to-stay-organized",
+    readTime: "5 min read",
+    date: "March 2026",
+    slug: "",
   },
 ];
 
