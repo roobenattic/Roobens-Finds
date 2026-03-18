@@ -7,7 +7,7 @@
  */
 import { ArrowRight, Clock, Tag } from "lucide-react";
 
-const BLOG_IMG = "/blog/blog-hero-desk.jpg";
+const BLOG_IMG = "/blog-hero-desk.jpg";
 
 const articles = [
   {
@@ -75,7 +75,7 @@ export default function Blog() {
             </div>
             <div className="hidden lg:block">
               <img
-                src="/blog/blog-hero-desk.jpg"
+                src="/blog-hero-desk.jpg"
                 alt="Practical guides from Roobens Finds"
                 className="w-full rounded-sm shadow-xl"
               />
