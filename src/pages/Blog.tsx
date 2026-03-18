@@ -26,7 +26,7 @@ const articles = [
     category: "Creator Gear",
     readTime: "3 min read",
     date: "March 17, 2026",
-    slug: why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk",
+    slug: "why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk",
   },
   {
     id: 3,
