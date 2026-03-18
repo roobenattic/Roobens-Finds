@@ -17,7 +17,7 @@ const articles = [
     category: "Practical Finds",
     readTime: "4 min read",
     date: "March 17, 2026",
-    slug: "3-practical-desk-gadgets-i-actually Use"
+    slug: "3-practical-desk-gadgets-i-actually-use"
   },
   {
     id: 2,
