@@ -7,7 +7,7 @@
  */
 import { ArrowRight, Clock, Tag } from "lucide-react";
 
-const BLOG_IMG = "/blog/blog-hero-desk-jpg";
+const BLOG_IMG = "/blog/blog-hero-desk.jpg";
 
 const articles = [
   {
