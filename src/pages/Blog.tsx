@@ -12,30 +12,30 @@ const BLOG_IMG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudk
 const articles = [
   {
     id: 1,
-    title: "Why I Stopped Using Spreadsheets to Track My Money",
+    title: "3 Practical Desk Gadgets I Actually Use",
     excerpt:
       "I used to have five different spreadsheets for five different things. None of them were up to date. Here is what I switched to — and why it actually stuck.",
-    category: "Personal Finance",
+    category: "Practical Finds",
     readTime: "5 min read",
     date: "March 10, 2026",
     slug: "stopped-using-spreadsheets-to-track-money",
   },
   {
     id: 2,
-    title: "How to Get a Clear Picture of Your Finances in One Afternoon",
+    title: "Why the Logitech MX Keys Still Earns a Spot on My Desk",
     excerpt:
       "You do not need a financial advisor or a complicated system. You need one focused session and the right structure. Here is exactly how to do it.",
-    category: "Getting Organized",
+    category: "Creator Gear",
     readTime: "6 min read",
     date: "March 5, 2026",
     slug: "clear-picture-of-finances-one-afternoon",
   },
   {
     id: 3,
-    title: "The Tools We Actually Use to Stay Organized",
+    title: "My Practical Desk Setup for Work, Content, and Everyday Use",
     excerpt:
       "From digital planners to note-taking apps, here are the tools we rely on every day to stay on top of goals, content, and finances — without the overwhelm.",
-    category: "Tools & Productivity",
+    category: "Desk Setup",
     readTime: "4 min read",
     date: "February 20, 2026",
     slug: "tools-we-use-to-stay-organized",
