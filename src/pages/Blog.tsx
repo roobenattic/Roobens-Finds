@@ -4,7 +4,6 @@
  * Fonts: Poppins (headings), DM Sans (body)
  */
 
-import LogitechMXKeys from "./pages/LogitechMXKeys";
 import { ArrowRight, Clock, Tag } from "lucide-react";
 import { Link } from "wouter";
 import { NEWSLETTER_ENDPOINT } from "@/config";
@@ -32,7 +31,7 @@ const articles = [
     readTime: "3 min read",
     date: "March 17, 2026",
     slug: "why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk",
-    published: false,
+    published: true,
   },
   {
     id: 3,
