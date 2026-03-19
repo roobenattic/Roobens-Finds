@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 const ARTICLE_IMG = "/blog-hero-desk.jpg";
+const ARTICLE_IMG = "/home/hero-office-setup.jpg";
 export default function PracticalDeskGadgets() {
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
