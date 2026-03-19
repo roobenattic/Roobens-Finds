@@ -1,3 +1,4 @@
+import LogitechMXKeys from "./pages/LogitechMXKeys";
 import PracticalDeskGadgets from "./pages/PracticalDeskGadgets";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -40,6 +41,8 @@ function Router() {
         <Route path="/contact" component={Contact} />
         <Route path="blog" component={Blog} />
         <Route path="/blog/3-practical-desk-gadgets-i-actually-use" component={PracticalDeskGadgets} />
+        <Route path="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk"component={LogitechMXKeys}
+/> 
         <Route path="/tools" component={Tools} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
