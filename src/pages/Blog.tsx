@@ -73,13 +73,13 @@ export default function Blog() {
                 Honest, practical articles on getting organized, using better tools, and making clearer decisions — written in plain language, no jargon.
               </p>
             </div>
-            <div className="hidden lg:block">
-              <img
-                src={BLOG_IMG}
-                alt="Practical guides from Roobens Finds"
-                className="w-full rounded-sm shadow-xl"
-              />
-            </div>
+            <div className="mt-8 lg:mt-0">
+  <img
+    src={BLOG_IMG}
+    alt="Practical guides from Roobens Finds"
+    className="w-full h-[220px] sm:h-[280px] lg:h-auto object-cover rounded-2xl shadow-xl"
+  />
+</div>
           </div>
         </div>
       </section>
