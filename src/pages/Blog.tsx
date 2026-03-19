@@ -42,7 +42,7 @@ const articles = [
     readTime: "5 min read",
     date: "March 17, 2026",
     slug: "my-practical-desk-setup-for-work-content-and-everyday-use",
-    published: false,
+    published: true,
   },
 ];
 
