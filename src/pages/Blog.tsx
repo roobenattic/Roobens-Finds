@@ -73,7 +73,7 @@ export default function Blog() {
                 Honest, practical articles on getting organized, using better tools, and making clearer decisions — written in plain language, no jargon.
               </p>
             </div>
-            <div className="order-1 lg:order-2 mt-8 lg:mt-0">
+            <div className="order-2 lg:order-1">
   <img
     src={BLOG_IMG}
     alt="Practical guides from Roobens Finds"
