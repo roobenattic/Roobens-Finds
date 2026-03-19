@@ -1,3 +1,4 @@
+import PracticalDeskGadgets from "./pages/PracticalDeskGadgets";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Finds from "./pages/Finds";
@@ -37,7 +38,7 @@ function Router() {
         <Route path="/product" component={Product} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
-        <Route path="/blog" component={Blog} />
+        <Route path="/blog/3-practical-desk-gadgets-i-actually-use" component={PracticalDeskGadgets} />
         <Route path="/tools" component={Tools} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
