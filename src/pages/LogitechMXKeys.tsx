@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
+const ARTICLE_IMG = "/finds/logitech-mx-key.jpg";
 export default function LogitechMXKeys() {
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
@@ -52,6 +52,13 @@ export default function LogitechMXKeys() {
 
       <section className="py-12">
         <div className="container max-w-3xl mx-auto">
+          <div className="mb-6 overflow-hidden rounded-2xl border border-[#FECFA5]/50 shadow-sm bg-white">
+  <img
+    src={ARTICLE_IMG}
+    alt="Logitech MX Keys keyboard"
+    className="w-full h-[220px] sm:h-[300px] object-cover"
+  />
+</div>
           <div className="bg-white rounded-2xl border border-[#FECFA5]/50 p-6 md:p-8 shadow-sm">
             <div
               className="space-y-5 text-[#495E79] leading-relaxed"
