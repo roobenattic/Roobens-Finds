@@ -1,12 +1,10 @@
-
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function PracticalDeskGadgets() {
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
-      {/* Hero */}
       <section className="pt-24 pb-12 bg-white border-b border-[#FECFA5]/50">
         <div className="container max-w-4xl mx-auto">
           <Link href="/blog">
@@ -53,12 +51,11 @@ export default function PracticalDeskGadgets() {
         </div>
       </section>
 
-      {/* Body */}
       <section className="py-12">
         <div className="container max-w-3xl mx-auto">
           <div className="bg-white rounded-2xl border border-[#FECFA5]/50 p-6 md:p-8 shadow-sm">
             <div
-              className="prose max-w-none prose-p:leading-relaxed prose-p:text-[#495E79] prose-headings:text-[#495E79]"
+              className="space-y-5 text-[#495E79] leading-relaxed"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
               <p>
@@ -68,7 +65,10 @@ export default function PracticalDeskGadgets() {
                 about because they quietly do their job well.
               </p>
 
-              <h2 style={{ fontFamily: "'Poppins', sans-serif" }}>
+              <h2
+                className="text-2xl font-bold"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
                 1. Anker 10,000mAh Power Bank
               </h2>
               <p>
@@ -82,7 +82,10 @@ export default function PracticalDeskGadgets() {
                 makes my setup feel more reliable overall.
               </p>
 
-              <h2 style={{ fontFamily: "'Poppins', sans-serif" }}>
+              <h2
+                className="text-2xl font-bold"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
                 2. Belkin 3-in-1 Wireless Charger
               </h2>
               <p>
@@ -96,7 +99,10 @@ export default function PracticalDeskGadgets() {
                 intentional without needing a full desk makeover.
               </p>
 
-              <h2 style={{ fontFamily: "'Poppins', sans-serif" }}>
+              <h2
+                className="text-2xl font-bold"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
                 3. Logitech MX Keys
               </h2>
               <p>
@@ -110,7 +116,10 @@ export default function PracticalDeskGadgets() {
                 keyboard feels right, the whole workflow feels better.
               </p>
 
-              <h2 style={{ fontFamily: "'Poppins', sans-serif" }}>
+              <h2
+                className="text-2xl font-bold"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
                 Final thought
               </h2>
               <p>
@@ -124,7 +133,6 @@ export default function PracticalDeskGadgets() {
               </p>
             </div>
 
-            {/* CTA block */}
             <div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
               <p
                 className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
@@ -132,17 +140,19 @@ export default function PracticalDeskGadgets() {
               >
                 Next step
               </p>
+
               <h3
                 className="text-xl font-bold text-[#495E79] mb-2"
                 style={{ fontFamily: "'Poppins', sans-serif" }}
               >
-                Browse the finds or grab the free planner
+                Browse the finds or view the tools
               </h3>
+
               <p
                 className="text-sm text-[#5F7C84] mb-5"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
-                Explore more practical picks or download the free Portfolio Planner.
+                Explore more practical picks and creator-friendly tools.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3">
