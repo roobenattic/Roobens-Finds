@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { NEWSLETTER_ENDPOINT } from "@/config";
 
 const BLOG_IMG = "/blog-hero-desk.jpg";
+const FEATURED_ARTICLE_IMG = "/blog-hero-desk.jpg";
 
 const articles = [
   {
@@ -96,145 +97,153 @@ export default function Blog() {
       </section>
 
       {/* Articles */}
-      <section className="py-16 md:py-20 bg-[#FAF9F7]">
-        <div className="container">
-          <h2
-            className="text-2xl md:text-3xl font-bold text-[#495E79] mb-8"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            Articles
-          </h2>
+     {/* Featured + Articles */}
+<section className="py-16 md:py-20 bg-[#FAF9F7]">
+  <div className="container">
+    <div className="mb-12">
+      <p
+        className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        Featured Article
+      </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article) => (
-              <article
-                key={article.id}
-                className="bg-white border border-[#FECFA5] rounded-sm overflow-hidden hover:border-[#F16953]/40 hover:shadow-md transition-all group"
-              >
-                <div className="p-7">
-                  <div className="flex items-center gap-2 mb-4">
-                    <Tag className="w-3.5 h-3.5 text-[#F16953]" />
-                    <span
-                      className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        categoryColors[article.category] || "bg-gray-100 text-gray-600"
-                      }`}
-                      style={{ fontFamily: "'DM Sans', sans-serif" }}
-                    >
-                      {article.category}
-                    </span>
-                  </div>
-
-                  <h3
-                    className="text-[#495E79] font-bold text-lg mb-3 group-hover:text-[#F16953] transition-colors leading-snug"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    {article.title}
-                  </h3>
-
-                  <p
-                    className="text-[#495E79]/60 text-sm leading-relaxed mb-5"
-                    style={{ fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    {article.excerpt}
-                  </p>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-1 text-[#495E79]/40">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span
-                        className="text-xs"
-                        style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      >
-                        {article.readTime}
-                      </span>
-                      <span
-                        className="text-xs ml-2"
-                        style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      >
-                        · {article.date}
-                      </span>
-                    </div>
-
-                    {article.published ? (
-                      <Link href={`/blog/${article.slug}`}>
-                        <span
-                          className="flex items-center gap-1 text-[#F16953] text-xs font-semibold hover:gap-2 transition-all cursor-pointer"
-                          style={{ fontFamily: "'DM Sans', sans-serif" }}
-                        >
-                          Read Article
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      </Link>
-                    ) : (
-                      <span
-                        className="text-xs font-semibold text-[#495E79]/40"
-                        style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      >
-                        Coming Soon
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
+      <div className="bg-white border border-[#FECFA5] rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="grid grid-cols-1 lg:grid-cols-2 items-center">
+          <div className="overflow-hidden h-full">
+            <img
+              src={FEATURED_ARTICLE_IMG}
+              alt="Featured article from Roobens Finds"
+              className="w-full h-[260px] md:h-[340px] object-cover"
+            />
           </div>
 
-          <p
-            className="text-center text-[#5F7C84] text-sm mt-10"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            More articles coming soon — subscribe below to be notified.
-          </p>
-        </div>
-      </section>
+          <div className="p-6 md:p-8">
+            <span
+              className={`inline-flex text-xs font-semibold px-2.5 py-1 rounded-full mb-4 ${
+                categoryColors[articles[0].category] || "bg-gray-100 text-gray-600"
+              }`}
+              style={{ fontFamily: "'DM Sans', sans-serif" }}
+            >
+              {articles[0].category}
+            </span>
 
-      {/* Newsletter CTA */}
-      <section className="py-16 bg-[#495E79]">
-        <div className="container">
-          <div className="max-w-xl mx-auto text-center">
             <h2
-              className="text-2xl md:text-3xl font-bold text-white mb-3"
+              className="text-2xl md:text-3xl font-bold text-[#495E79] mb-4 leading-snug"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              Get New Guides, Finds, and Tools First
+              {articles[0].title}
             </h2>
 
             <p
-              className="text-white/60 text-sm mb-6"
+              className="text-[#5F7C84] text-base leading-relaxed mb-5"
               style={{ fontFamily: "'DM Sans', sans-serif" }}
             >
-              Subscribe to get new guides, product updates, and early access to
-              new Roobens Finds tools — delivered free to your inbox.
+              {articles[0].excerpt}
             </p>
 
-            <form
-              action={NEWSLETTER_ENDPOINT}
-              method="post"
-              className="flex flex-col sm:flex-row gap-3"
-            >
-              <input
-                type="email"
-                name="email"
-                placeholder="Enter your email address"
-                required
-                className="flex-1 px-4 py-3 border border-white/20 rounded-sm text-sm text-white bg-white/10 placeholder:text-white/40 focus:outline-none focus:border-[#F16953] transition-colors"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              />
-
-              <input type="hidden" name="embed" value="1" />
-              <input type="hidden" name="tag" value="blog" />
-
-              <button
-                type="submit"
-                className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-6 py-3 rounded-sm text-sm whitespace-nowrap transition-colors"
+            <div className="flex items-center gap-2 text-[#495E79]/50 mb-6">
+              <Clock className="w-4 h-4" />
+              <span
+                className="text-sm"
                 style={{ fontFamily: "'DM Sans', sans-serif" }}
               >
-                Join the Free Newsletter
+                {articles[0].readTime}
+              </span>
+              <span
+                className="text-sm"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                · {articles[0].date}
+              </span>
+            </div>
+
+            <Link href={`/blog/${articles[0].slug}`}>
+              <button
+                className="inline-flex items-center gap-2 bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-5 py-3 rounded-sm transition-colors"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                Read Featured Article
+                <ArrowRight className="w-4 h-4" />
               </button>
-            </form>
+            </Link>
           </div>
         </div>
-      </section>
+      </div>
     </div>
-  );
-}
+
+    <div>
+      <h2
+        className="text-2xl md:text-3xl font-bold text-[#495E79] mb-8"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        Latest Articles
+      </h2>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        {articles.slice(1).map((article) => (
+          <article
+            key={article.id}
+            className="bg-white border border-[#FECFA5] rounded-sm overflow-hidden hover:border-[#F16953]/40 hover:shadow-md transition-all group"
+          >
+            <div className="p-7">
+              <div className="flex items-center gap-2 mb-4">
+                <Tag className="w-3.5 h-3.5 text-[#F16953]" />
+                <span
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    categoryColors[article.category] || "bg-gray-100 text-gray-600"
+                  }`}
+                  style={{ fontFamily: "'DM Sans', sans-serif" }}
+                >
+                  {article.category}
+                </span>
+              </div>
+
+              <h3
+                className="text-[#495E79] font-bold text-lg mb-3 group-hover:text-[#F16953] transition-colors leading-snug"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                {article.title}
+              </h3>
+
+              <p
+                className="text-[#495E79]/60 text-sm leading-relaxed mb-5"
+                style={{ fontFamily: "'DM Sans', sans-serif" }}
+              >
+                {article.excerpt}
+              </p>
+
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-1 text-[#495E79]/40">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span
+                    className="text-xs"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    {article.readTime}
+                  </span>
+                  <span
+                    className="text-xs ml-2"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    · {article.date}
+                  </span>
+                </div>
+
+                <Link href={`/blog/${article.slug}`}>
+                  <span
+                    className="flex items-center gap-1 text-[#F16953] text-xs font-semibold hover:gap-2 transition-all cursor-pointer"
+                    style={{ fontFamily: "'DM Sans', sans-serif" }}
+                  >
+                    Read Article
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
