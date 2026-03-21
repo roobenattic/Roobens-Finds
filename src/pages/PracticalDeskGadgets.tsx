@@ -140,8 +140,7 @@ export default function PracticalDeskGadgets() {
                 not hype, just practical things that actually help.
               </p>
             </div>
-
-           <div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
+<div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
   <p
     className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
     style={{ fontFamily: "'Poppins', sans-serif" }}
@@ -184,50 +183,56 @@ export default function PracticalDeskGadgets() {
       </Button>
     </Link>
   </div>
+</div>
 
-  <div className="mt-8 pt-6 border-t border-[#FECFA5]/60">
-    <p
-      className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-3"
-      style={{ fontFamily: "'Poppins', sans-serif" }}
-    >
-      Read next
-    </p>
+<div className="mt-8 pt-6 border-t border-[#FECFA5]/60">
+  <p
+    className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-3"
+    style={{ fontFamily: "'Poppins', sans-serif" }}
+  >
+    Read next
+  </p>
 
-    <div className="grid sm:grid-cols-2 gap-3">
-      <Link href="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk">
-        <div className="rounded-xl border border-[#FECFA5] bg-white p-4 hover:border-[#F16953]/40 hover:shadow-sm transition-all cursor-pointer">
-          <p
-            className="text-xs text-[#F16953] font-semibold mb-1"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Creator Gear
-          </p>
-          <h4
-            className="text-[#495E79] font-bold text-base leading-snug"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            Why the Logitech MX Keys Still Earns a Spot on My Desk
-          </h4>
-        </div>
-      </Link>
+  <div className="grid sm:grid-cols-2 gap-3">
+    <Link href="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk">
+      <div className="rounded-xl border border-[#FECFA5] bg-white p-4 hover:border-[#F16953]/40 hover:shadow-sm transition-all cursor-pointer">
+        <p
+          className="text-xs text-[#F16953] font-semibold mb-1"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Creator Gear
+        </p>
+        <h4
+          className="text-[#495E79] font-bold text-base leading-snug"
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+        >
+          Why the Logitech MX Keys Still Earns a Spot on My Desk
+        </h4>
+      </div>
+    </Link>
 
-      <Link href="/blog/my-practical-desk-setup-for-work-content-and-everyday-use">
-        <div className="rounded-xl border border-[#FECFA5] bg-white p-4 hover:border-[#F16953]/40 hover:shadow-sm transition-all cursor-pointer">
-          <p
-            className="text-xs text-[#F16953] font-semibold mb-1"
-            style={{ fontFamily: "'DM Sans', sans-serif" }}
-          >
-            Desk Setup
-          </p>
-          <h4
-            className="text-[#495E79] font-bold text-base leading-snug"
-            style={{ fontFamily: "'Poppins', sans-serif" }}
-          >
-            My Practical Desk Setup for Work, Content, and Everyday Use
-          </h4>
-        </div>
-      </Link>
-    </div>
+    <Link href="/blog/my-practical-desk-setup-for-work-content-and-everyday-use">
+      <div className="rounded-xl border border-[#FECFA5] bg-white p-4 hover:border-[#F16953]/40 hover:shadow-sm transition-all cursor-pointer">
+        <p
+          className="text-xs text-[#F16953] font-semibold mb-1"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Desk Setup
+        </p>
+        <h4
+          className="text-[#495E79] font-bold text-base leading-snug"
+          style={{ fontFamily: "'Poppins', sans-serif" }}
+        >
+          My Practical Desk Setup for Work, Content, and Everyday Use
+        </h4>
+      </div>
+    </Link>
   </div>
 </div>
-</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+         
