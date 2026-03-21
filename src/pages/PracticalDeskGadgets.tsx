@@ -141,19 +141,7 @@ export default function PracticalDeskGadgets() {
               </p>
             </div>
 
-            <div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
-              <p
-                className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
-                style={{ fontFamily: "'Poppins', sans-serif" }}
-              >
-                Next step
-              </p>
-
-              <h3
-                className="text-xl font-bold text-[#495E79] mb-2"
-                style={{ fontFamily: "'Poppins', sans-serif" }}
-              >
-                <div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
+           <div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
   <p
     className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
     style={{ fontFamily: "'Poppins', sans-serif" }}
@@ -241,4 +229,5 @@ export default function PracticalDeskGadgets() {
       </Link>
     </div>
   </div>
+</div>
 </div>
