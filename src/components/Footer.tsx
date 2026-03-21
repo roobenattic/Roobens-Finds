@@ -185,17 +185,18 @@ export default function Footer() {
                   </li>
                 ))}
               </ul>
-              <div className="mt-4">
-                <Link href="/contact">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-[#FECFA5] text-sm font-semibold hover:gap-2.5 transition-all"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    Subscribe Free
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </span>
-                </Link>
-              </div>
+          <div className="mt-4">
+  <a
+    href="https://buttondown.com/roobensfinds"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="inline-flex items-center gap-1.5 text-[#FECFA5] text-sm font-semibold hover:gap-2.5 transition-all"
+    style={{ fontFamily: "'Poppins', sans-serif" }}
+  >
+    Subscribe Free
+    <ArrowRight className="w-3.5 h-3.5" />
+  </a>
+</div>
             </div>
           </div>
         </div>
