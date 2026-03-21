@@ -1,8 +1,9 @@
 import { Link } from "wouter";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
 const ARTICLE_IMG = "/blog-hero-desk.jpg";
-const ARTICLE_IMG = "/home/hero-office-setup.jpg";
+
 export default function PracticalDeskGadgets() {
   return (
     <div className="min-h-screen bg-[#FAF9F7]">
@@ -153,41 +154,92 @@ export default function PracticalDeskGadgets() {
                 className="text-xl font-bold text-[#495E79] mb-2"
                 style={{ fontFamily: "'Poppins', sans-serif" }}
               >
-                Browse the finds or view the tools
-              </h3>
+                <div className="mt-10 rounded-xl border border-[#FECFA5] bg-[#FAF9F7] p-5">
+  <p
+    className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-2"
+    style={{ fontFamily: "'Poppins', sans-serif" }}
+  >
+    Next step
+  </p>
 
-              <p
-                className="text-sm text-[#5F7C84] mb-5"
-                style={{ fontFamily: "'DM Sans', sans-serif" }}
-              >
-                Explore more practical picks and creator-friendly tools.
-              </p>
+  <h3
+    className="text-xl font-bold text-[#495E79] mb-2"
+    style={{ fontFamily: "'Poppins', sans-serif" }}
+  >
+    Browse the finds or view the tools
+  </h3>
 
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Link href="/finds">
-                  <Button
-                    className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    Browse Finds
-                    <ExternalLink className="ml-2 w-4 h-4" />
-                  </Button>
-                </Link>
+  <p
+    className="text-sm text-[#5F7C84] mb-5"
+    style={{ fontFamily: "'DM Sans', sans-serif" }}
+  >
+    Explore more practical picks and creator-friendly tools.
+  </p>
 
-                <Link href="/tools">
-                  <Button
-                    variant="outline"
-                    className="border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold"
-                    style={{ fontFamily: "'Poppins', sans-serif" }}
-                  >
-                    View Tools
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
+  <div className="flex flex-col sm:flex-row gap-3">
+    <Link href="/finds">
+      <Button
+        className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        Browse Finds
+        <ExternalLink className="ml-2 w-4 h-4" />
+      </Button>
+    </Link>
+
+    <Link href="/tools">
+      <Button
+        variant="outline"
+        className="border-[#495E79]/30 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold"
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+      >
+        View Tools
+      </Button>
+    </Link>
+  </div>
+
+  <div className="mt-8 pt-6 border-t border-[#FECFA5]/60">
+    <p
+      className="text-xs font-semibold uppercase tracking-widest text-[#F16953] mb-3"
+      style={{ fontFamily: "'Poppins', sans-serif" }}
+    >
+      Read next
+    </p>
+
+    <div className="grid sm:grid-cols-2 gap-3">
+      <Link href="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk">
+        <div className="rounded-xl border border-[#FECFA5] bg-white p-4 hover:border-[#F16953]/40 hover:shadow-sm transition-all cursor-pointer">
+          <p
+            className="text-xs text-[#F16953] font-semibold mb-1"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Creator Gear
+          </p>
+          <h4
+            className="text-[#495E79] font-bold text-base leading-snug"
+            style={{ fontFamily: "'Poppins', sans-serif" }}
+          >
+            Why the Logitech MX Keys Still Earns a Spot on My Desk
+          </h4>
         </div>
-      </section>
+      </Link>
+
+      <Link href="/blog/my-practical-desk-setup-for-work-content-and-everyday-use">
+        <div className="rounded-xl border border-[#FECFA5] bg-white p-4 hover:border-[#F16953]/40 hover:shadow-sm transition-all cursor-pointer">
+          <p
+            className="text-xs text-[#F16953] font-semibold mb-1"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            Desk Setup
+          </p>
+          <h4
+            className="text-[#495E79] font-bold text-base leading-snug"
+            style={{ fontFamily: "'Poppins', sans-serif" }}
+          >
+            My Practical Desk Setup for Work, Content, and Everyday Use
+          </h4>
+        </div>
+      </Link>
     </div>
-  );
-}
+  </div>
+</div>
