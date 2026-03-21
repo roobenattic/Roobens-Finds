@@ -1,7 +1,7 @@
 /**
  * Contact Page — Roobens Finds
  * Brand: Deep Slate #495E79, Coral #F16953, Soft Peach #FECFA5
- * Email: support@roobensfinds.com | Domain: www.roobensfinds.com
+ * Email: info@roobensfinds.com | Domain: www.roobensfinds.com
  */
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
