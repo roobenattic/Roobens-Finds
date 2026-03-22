@@ -524,33 +524,58 @@ export default function Home() {
       </section>
 
      {/* ── EMAIL CAPTURE ── */}
+{/* ── EMAIL CAPTURE ── */}
 <section className="py-16 bg-[#495E79]">
   <div className="container max-w-xl mx-auto text-center">
-    <p className="text-xs font-semibold uppercase tracking-widest text-[#FECFA5] mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+    <p
+      className="text-xs font-semibold uppercase tracking-widest text-[#FECFA5] mb-3"
+      style={{ fontFamily: "'Poppins', sans-serif" }}
+    >
       Stay in the loop
     </p>
-    <h2 className="text-2xl md:text-3xl font-bold text-white mb-3" style={{ fontFamily: "'Poppins', sans-serif" }}>
+
+    <h2
+      className="text-2xl md:text-3xl font-bold text-white mb-3"
+      style={{ fontFamily: "'Poppins', sans-serif" }}
+    >
       New tools, finds, and guides — free.
     </h2>
-    <p className="text-white/65 text-sm mb-7" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+
+    <p
+      className="text-white/65 text-sm mb-7"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
       Join the Roobens Finds list. No spam, no fluff — just practical content
       and early access to new tools and finds.
     </p>
 
     <form
-      action={NEWSLETTER_ENDPOINT}
+      action="https://buttondown.com/api/emails/embed-subscribe/roobensfinds"
       method="post"
-      className="flex flex-col sm:flex-row gap-3"
+      className="flex flex-col gap-3"
     >
+      <input
+        type="text"
+        name="metadata[name]"
+        placeholder="Your name"
+        className="w-full px-4 py-3 rounded-lg text-[#495E79] bg-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#F16953]/50 text-sm"
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+      />
+
       <input
         type="email"
         name="email"
         placeholder="Your email address"
         required
-        className="flex-1 px-4 py-3 rounded-lg text-[#495E79] bg-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#F16953]/50 text-sm"
+        className="w-full px-4 py-3 rounded-lg text-[#495E79] bg-white border border-white/20 focus:outline-none focus:ring-2 focus:ring-[#F16953]/50 text-sm"
         style={{ fontFamily: "'DM Sans', sans-serif" }}
       />
 
+      <input
+        type="hidden"
+        name="redirect"
+        value="https://www.roobensfinds.com/thank-you"
+      />
       <input type="hidden" name="embed" value="1" />
       <input type="hidden" name="tag" value="homepage" />
 
@@ -563,13 +588,15 @@ export default function Home() {
       </Button>
     </form>
 
-    <p className="text-white/40 text-xs mt-3" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <p
+      className="text-white/40 text-xs mt-3"
+      style={{ fontFamily: "'DM Sans', sans-serif" }}
+    >
       Unsubscribe anytime. No spam, ever.
     </p>
   </div>
 </section>
-  </div>
-);
+    );
 }
 
       
