@@ -2,7 +2,7 @@
 
 A static React + Vite + TypeScript website for **Roobens Finds** ([www.roobensfinds.com](https://www.roobensfinds.com)). Built with Tailwind CSS v4, shadcn/ui, Framer Motion, and Wouter for client-side routing.
 
-**Contact:** info@roobensfinds.com
+**Contact:** contact@roobensfinds.com
 
 ---
 
