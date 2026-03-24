@@ -20,6 +20,7 @@ import Terms from "./pages/Terms";
 import Disclaimer from "./pages/Disclaimer";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
+import ThankYou from "./pages/ThankYou";
 
 // Scroll to top on route change
 function ScrollToTop() {
@@ -53,6 +54,7 @@ function Router() {
         <Route path="/terms" component={Terms} />
         <Route path="/disclaimer" component={Disclaimer} />
         <Route path="/finds" component={Finds} />
+       <Route path="/thank-you" component={ThankYou} /> 
         <Route component={NotFound} />
       </Switch>
       <Footer />
