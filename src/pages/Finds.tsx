@@ -72,7 +72,7 @@ const finds: Find[] = [
     price: "$35",
     rating: 4.5,
     badge: "Daily Carry",
-    href: "https://https://amzn.to/4uvbEFs",
+    href: "https://amzn.to/4uvbEFs",
     affiliate: true,
     image: "/finds/anker-10000.jpg",
   },
@@ -90,7 +90,7 @@ const finds: Find[] = [
     price: "$130",
     rating: 4.4,
     badge: "Desk Essential",
-    href: "https://https://amzn.to/4uvbEFs",
+    href: "https://amzn.to/4uvbEFs",
     affiliate: true,
     image: "/finds/belkin-3in1.jpg",
   },
@@ -171,6 +171,53 @@ export default function Finds() {
               paid placements.
             </p>
           </motion.div>
+        </div>
+      </section>
+
+      {/* Top Picks */}
+      <section className="bg-[#FAF9F7] py-10 border-b border-[#FECFA5]/60">
+        <div className="container max-w-4xl mx-auto px-6 text-center">
+          <h2
+            className="text-2xl md:text-3xl font-bold text-[#495E79] mb-4"
+            style={{ fontFamily: "'Poppins', sans-serif" }}
+          >
+            🔥 My Top Picks Right Now
+          </h2>
+
+          <p
+            className="text-[#495E79]/70 mb-8"
+            style={{ fontFamily: "'DM Sans', sans-serif" }}
+          >
+            If you only check one thing today, make it one of these.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="https://amzn.to/4uvbEFs"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold px-8"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                👉 Best Power Bank
+              </Button>
+            </a>
+
+            <a
+              href="https://amzn.to/4uvbEFs"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Button
+                className="bg-[#495E79] hover:bg-[#3d5168] text-white font-semibold px-8"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                👉 Best Desk Charger
+              </Button>
+            </a>
+          </div>
         </div>
       </section>
 
@@ -345,12 +392,20 @@ export default function Finds() {
 
                     {/* Footer */}
                     <div className="flex items-center justify-between pt-4 border-t border-[#495E79]/8">
-                      <span
-                        className="text-sm font-semibold text-[#495E79]"
-                        style={{ fontFamily: "'DM Sans', sans-serif" }}
-                      >
-                        {find.price}
-                      </span>
+                      <div>
+                        <span
+                          className="text-sm font-semibold text-[#495E79]"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          {find.price}
+                        </span>
+                        <p
+                          className="text-xs text-[#F16953] mt-1"
+                          style={{ fontFamily: "'DM Sans', sans-serif" }}
+                        >
+                          Limited-time deal
+                        </p>
+                      </div>
 
                       <a
                         href={find.href}
@@ -359,7 +414,7 @@ export default function Finds() {
                         className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#F16953] hover:text-[#d95840] transition-colors"
                         style={{ fontFamily: "'DM Sans', sans-serif" }}
                       >
-                        View
+                        Check Price
                         <ExternalLink className="w-3.5 h-3.5" />
                       </a>
                     </div>
