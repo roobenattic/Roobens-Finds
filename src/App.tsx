@@ -41,7 +41,7 @@ function Router() {
         <Route path="/product" component={Product} />
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
-        <Route path="blog" component={Blog} />
+        <Route path="/blog" component={Blog} />
         <Route path="/blog/3-practical-desk-gadgets-i-actually-use" component={PracticalDeskGadgets} />
         <Route path="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk"component={LogitechMXKeys}
 /> 
