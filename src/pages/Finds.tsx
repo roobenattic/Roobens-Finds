@@ -206,7 +206,7 @@ export default function Finds() {
             </a>
 
             <a
-              href="https://amzn.to/41cJuC1"
+              href="https://amzn.to/4uK1v81"
               target="_blank"
               rel="noopener noreferrer"
             >
