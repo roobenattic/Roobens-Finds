@@ -193,7 +193,7 @@ export default function Finds() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="https://amzn.to/4uvbEFs"
+              href="https://amzn.to/3NBRbhR"
               target="_blank"
               rel="noopener noreferrer"
             >
