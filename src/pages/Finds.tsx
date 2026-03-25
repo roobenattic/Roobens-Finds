@@ -214,7 +214,7 @@ export default function Finds() {
                 className="bg-[#495E79] hover:bg-[#3d5168] text-white font-semibold px-8"
                 style={{ fontFamily: "'Poppins', sans-serif" }}
               >
-                👉 Best Desk Charger
+                👉 Browse My Office Setup Picks
               </Button>
             </a>
           </div>
