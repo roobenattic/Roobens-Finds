@@ -69,7 +69,7 @@ const finds: Find[] = [
       "Fast charging support",
       "Reliable brand",
     ],
-    price: "$40",
+    price: "$49",
     rating: 4.5,
     badge: "Daily Carry",
     href: "https://amzn.to/3NBRbhR",
