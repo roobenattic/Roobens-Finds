@@ -7,14 +7,14 @@ export async function POST(request) {
       return Response.json({ error: "Message is required" }, { status: 400 });
     }
 
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const openaiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-5-mini",
+        model: "gpt-4.1-mini",
         input: [
           {
             role: "user",
@@ -22,13 +22,13 @@ export async function POST(request) {
           },
         ],
         instructions:
-  "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. Never ask for too many things at once. For the first reply, keep it very short and only ask one simple question. Help visitors understand the next best step. If they want to work with us, collect their details naturally, one item at a time: name, business name, email, phone, and what they need."
+          "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. For the first reply, keep it short and ask only one simple question. If the visitor wants to work with us or asks for help, pricing, a sample, or contact, politely collect these details one at a time: name, business name, email, phone, and what they need."
       }),
     });
 
-    const data = await response.json();
+    const data = await openaiResponse.json();
 
-    if (!response.ok) {
+    if (!openaiResponse.ok) {
       return Response.json(
         {
           error: "OpenAI request failed",
@@ -46,6 +46,35 @@ export async function POST(request) {
         ?.map((content) => content.text)
         ?.join("\n")
         ?.trim() || "No response";
+
+    const lowerMessage = message.toLowerCase();
+
+    const looksLikeLead =
+      lowerMessage.includes("my name is") ||
+      lowerMessage.includes("business") ||
+      lowerMessage.includes("email") ||
+      lowerMessage.includes("phone") ||
+      lowerMessage.includes("i need") ||
+      lowerMessage.includes("i want to work with you") ||
+      lowerMessage.includes("contact me") ||
+      lowerMessage.includes("quote") ||
+      lowerMessage.includes("pricing");
+
+    if (looksLikeLead) {
+      await fetch("https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: "",
+          business: "",
+          email: "",
+          phone: "",
+          need: message,
+        }),
+      });
+    }
 
     return Response.json({ reply });
   } catch (error) {
