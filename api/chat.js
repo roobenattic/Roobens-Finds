@@ -77,8 +77,9 @@ export async function POST(request) {
     const hasPhone = /\d{3}.*\d{3}.*\d{4}/.test(fullText);
 
     if (hasEmail || hasPhone) {
-      try {
-        await fetch("https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec", {
+      const sheetResponse = await fetch(
+        "https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec",
+        {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -90,10 +91,15 @@ export async function POST(request) {
             phone: hasPhone ? message : "",
             need: message,
           }),
-        });
-      } catch (err) {
-        console.log("Lead save failed");
-      }
+        }
+      );
+
+      const sheetText = await sheetResponse.text();
+
+      return Response.json({
+        reply,
+        sheetDebug: sheetText,
+      });
     }
 
     return Response.json({ reply });
