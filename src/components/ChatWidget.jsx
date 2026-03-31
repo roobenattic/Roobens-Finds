@@ -3,12 +3,12 @@ import React, { useState } from "react";
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { sender: "Bot", text: "Hi! How can I help you today?" },
+    { sender: "Bot", text: "Hi — how can I help today?" },
   ]);
   const [input, setInput] = useState("");
 
-  const sendMessage = async () => {
-    const message = input.trim();
+  const sendMessage = async (customMessage) => {
+    const message = (customMessage ?? input).trim();
     if (!message) return;
 
     setMessages((prev) => [...prev, { sender: "You", text: message }]);
@@ -27,7 +27,14 @@ export default function ChatWidget() {
 
       setMessages((prev) => [
         ...prev,
-        { sender: "Bot", text: data.reply || data.error || "No response" },
+        {
+          sender: "Bot",
+          text:
+            data.reply ||
+            `${data.error || "Request failed"}${
+              data.details ? `: ${data.details}` : ""
+            }`,
+        },
       ]);
     } catch {
       setMessages((prev) => [
@@ -77,6 +84,32 @@ export default function ChatWidget() {
             </button>
           </div>
 
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginBottom: "8px" }}>
+            <button
+              onClick={() => sendMessage("What do you offer?")}
+              style={quickBtn}
+            >
+              What do you offer?
+            </button>
+            <button
+              onClick={() => sendMessage("How do I get started?")}
+              style={quickBtn}
+            >
+              How do I get started?
+            </button>
+            <a
+              href="/contact"
+              style={{
+                ...quickBtn,
+                textDecoration: "none",
+                display: "inline-block",
+                textAlign: "center",
+              }}
+            >
+              Contact us
+            </a>
+          </div>
+
           <div
             style={{
               height: "220px",
@@ -115,7 +148,7 @@ export default function ChatWidget() {
           />
 
           <button
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             style={{
               width: "100%",
               padding: "10px",
@@ -154,3 +187,13 @@ export default function ChatWidget() {
     </>
   );
 }
+
+const quickBtn = {
+  border: "1px solid #ddd",
+  background: "#fff",
+  borderRadius: "999px",
+  padding: "6px 10px",
+  fontSize: "12px",
+  cursor: "pointer",
+  color: "#111827",
+};
