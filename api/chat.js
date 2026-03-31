@@ -64,6 +64,30 @@ export async function POST(request) {
     }
 
     const reply =
+      const fullText = message.toLowerCase();
+
+const hasEmail = fullText.includes("@");
+const hasPhone = /\d{3}.*\d{3}.*\d{4}/.test(fullText);
+
+if (hasEmail || hasPhone) {
+  try {
+    await fetch("https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: "",
+        business: "",
+        email: hasEmail ? message : "",
+        phone: hasPhone ? message : "",
+        need: message,
+      }),
+    });
+  } catch (err) {
+    console.log("Lead save failed");
+  }
+}
       data?.output
         ?.filter((item) => item.type === "message")
         ?.flatMap((item) => item.content || [])
