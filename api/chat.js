@@ -2,10 +2,16 @@ export async function POST(request) {
   try {
     const body = await request.json();
     const message = body?.message;
+    const history = Array.isArray(body?.history) ? body.history : [];
 
     if (!message) {
       return Response.json({ error: "Message is required" }, { status: 400 });
     }
+
+    const formattedHistory = history.map((item) => ({
+      role: item.sender === "Bot" ? "assistant" : "user",
+      content: item.text,
+    }));
 
     const openaiResponse = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -17,12 +23,16 @@ export async function POST(request) {
         model: "gpt-4.1-mini",
         input: [
           {
+            role: "system",
+            content:
+              "You are the website assistant for Roobens Finds. Be short, clear, warm, and professional. Do not restart the conversation if context already exists. Do not repeatedly say hi, hello, or hi there after the first greeting. Use the conversation history to remember what the visitor already said. If the visitor already shared who they are or what they need, do not ask the same thing again. Move the conversation forward naturally. Keep replies concise.",
+          },
+          ...formattedHistory,
+          {
             role: "user",
             content: message,
           },
         ],
-        instructions:
-          "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. For the first reply, keep it short and ask only one simple question. If the visitor wants to work with us, collect their details naturally, one item at a time: name, business name, email, phone, and what they need."
       }),
     });
 
