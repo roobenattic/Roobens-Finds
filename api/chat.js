@@ -1,9 +1,9 @@
 export async function POST(request) {
   try {
     const body = await request.json();
-    const message = body?.message;
-    const history = Array.isArray(body?.history) ? body.history : [];
-
+  const message = body?.message;
+const history = Array.isArray(body?.history) ? body.history : [];
+const currentPage = body?.currentPage || "/";
     if (!message) {
       return Response.json({ error: "Message is required" }, { status: 400 });
     }
