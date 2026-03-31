@@ -1,3 +1,4 @@
+import ChatWidget from "./components/ChatWidget";
 import PracticalDeskSetup from "./pages/PracticalDeskSetup";
 import LogitechMXKeys from "./pages/LogitechMXKeys";
 import PracticalDeskGadgets from "./pages/PracticalDeskGadgets";
