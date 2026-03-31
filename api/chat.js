@@ -22,7 +22,7 @@ export async function POST(request) {
           },
         ],
         instructions:
-          "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. For the first reply, keep it short and ask only one simple question. If the visitor wants to work with us or asks for help, pricing, a sample, or contact, politely collect these details one at a time: name, business name, email, phone, and what they need."
+          "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. For the first reply, keep it short and ask only one simple question. If the visitor wants to work with us, collect their details naturally, one item at a time: name, business name, email, phone, and what they need."
       }),
     });
 
@@ -47,40 +47,14 @@ export async function POST(request) {
         ?.join("\n")
         ?.trim() || "No response";
 
-    const lowerMessage = message.toLowerCase();
-
-    const looksLikeLead =
-      lowerMessage.includes("my name is") ||
-      lowerMessage.includes("business") ||
-      lowerMessage.includes("email") ||
-      lowerMessage.includes("phone") ||
-      lowerMessage.includes("i need") ||
-      lowerMessage.includes("i want to work with you") ||
-      lowerMessage.includes("contact me") ||
-      lowerMessage.includes("quote") ||
-      lowerMessage.includes("pricing");
-
-        if (looksLikeLead) {
-      const sheetResponse = await fetch("https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: "",
-          business: "",
-          email: "",
-          phone: "",
-          need: message,
-        }),
-      });
-
-      const sheetData = await sheetResponse.json().catch(() => ({}));
-
-      if (!sheetResponse.ok || sheetData.success === false) {
-        return Response.json({
-          reply,
-          sheetError: sheetData.error || "Lead save failed"
-        });
-      }
-    }
+    return Response.json({ reply });
+  } catch (error) {
+    return Response.json(
+      {
+        error: "Something went wrong",
+        details: error?.message || "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+}
