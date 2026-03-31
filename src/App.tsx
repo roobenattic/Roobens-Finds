@@ -26,9 +26,11 @@ import ThankYou from "./pages/ThankYou";
 // Scroll to top on route change
 function ScrollToTop() {
   const [location] = useLocation();
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [location]);
+
   return null;
 }
 
@@ -43,7 +45,10 @@ function Router() {
         <Route path="/about" component={About} />
         <Route path="/contact" component={Contact} />
         <Route path="/blog" component={Blog} />
-        <Route path="/blog/3-practical-desk-gadgets-i-actually-use" component={PracticalDeskGadgets} />
+        <Route
+          path="/blog/3-practical-desk-gadgets-i-actually-use"
+          component={PracticalDeskGadgets}
+        />
         <Route
           path="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk"
           component={LogitechMXKeys}
@@ -63,6 +68,19 @@ function Router() {
       <Footer />
       <ChatWidget />
     </>
+  );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <ThemeProvider defaultTheme="light">
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
