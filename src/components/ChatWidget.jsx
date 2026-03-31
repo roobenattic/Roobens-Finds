@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 export default function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
+  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
   const [messages, setMessages] = useState([
     { sender: "Bot", text: "Hi — how can I help today?" },
   ]);
@@ -17,7 +18,8 @@ export default function ChatWidget() {
     const message = (customMessage ?? input).trim();
     if (!message || isSending) return;
 
-    setMessages((prev) => [...prev, { sender: "You", text: message }]);
+    const nextMessages = [...messages, { sender: "You", text: message }];
+    setMessages(nextMessages);
     setInput("");
     setIsSending(true);
 
@@ -27,7 +29,10 @@ export default function ChatWidget() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({
+          message,
+          history: nextMessages.slice(-10),
+        }),
       });
 
       const data = await response.json();
@@ -53,12 +58,15 @@ export default function ChatWidget() {
     }
   };
 
+  const toggleChat = () => {
+    setIsOpen((prev) => !prev);
+    if (!hasOpenedOnce) setHasOpenedOnce(true);
+  };
+
   return (
     <>
       {isOpen && (
-        <div
-          style={panelStyle}
-        >
+        <div style={panelStyle}>
           <div style={headerStyle}>
             <div>
               <div style={titleStyle}>Roobens Finds Assistant</div>
@@ -161,8 +169,11 @@ export default function ChatWidget() {
       )}
 
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        style={launcherStyle}
+        onClick={toggleChat}
+        style={{
+          ...launcherStyle,
+          animation: !hasOpenedOnce ? "launcherPulse 1.8s infinite" : "none",
+        }}
         aria-label="Open chat"
       >
         <span style={{ transform: isOpen ? "scale(0.9)" : "scale(1)", transition: "0.2s ease" }}>
@@ -190,6 +201,21 @@ export default function ChatWidget() {
           40% {
             transform: translateY(-4px);
             opacity: 1;
+          }
+        }
+
+        @keyframes launcherPulse {
+          0% {
+            transform: scale(1);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.22), 0 0 0 0 rgba(17,24,39,0.35);
+          }
+          70% {
+            transform: scale(1.05);
+            box-shadow: 0 14px 34px rgba(0,0,0,0.24), 0 0 0 16px rgba(17,24,39,0);
+          }
+          100% {
+            transform: scale(1);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.22), 0 0 0 0 rgba(17,24,39,0);
           }
         }
       `}</style>
