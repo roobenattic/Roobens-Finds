@@ -44,35 +44,25 @@ function Router() {
         <Route path="/contact" component={Contact} />
         <Route path="/blog" component={Blog} />
         <Route path="/blog/3-practical-desk-gadgets-i-actually-use" component={PracticalDeskGadgets} />
-        <Route path="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk"component={LogitechMXKeys}
-/> 
         <Route
-  path="/blog/my-practical-desk-setup-for-work-content-and-everyday-use"
-  component={PracticalDeskSetup}
-/>
+          path="/blog/why-the-logitech-mx-keys-still-earns-a-spot-on-my-desk"
+          component={LogitechMXKeys}
+        />
+        <Route
+          path="/blog/my-practical-desk-setup-for-work-content-and-everyday-use"
+          component={PracticalDeskSetup}
+        />
         <Route path="/tools" component={Tools} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/terms" component={Terms} />
         <Route path="/disclaimer" component={Disclaimer} />
         <Route path="/finds" component={Finds} />
-       <Route path="/thank-you" component={ThankYou} /> 
+        <Route path="/thank-you" component={ThankYou} />
         <Route component={NotFound} />
       </Switch>
       <Footer />
+      <ChatWidget />
     </>
-  );
-}
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
   );
 }
 
