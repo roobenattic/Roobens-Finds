@@ -14,10 +14,15 @@ export async function POST(request) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-4.1-mini",
+        model: "gpt-5-mini",
+        input: [
+          {
+            role: "user",
+            content: message,
+          },
+        ],
         instructions:
-          "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. Guide visitors toward the next best step. If they want to work with us, ask for their name, business name, email, phone, and what they need.",
-        input: message,
+          "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. Guide visitors toward the next best step. If they want to work with us, ask for their name, business name, email, phone, and what they need."
       }),
     });
 
@@ -33,9 +38,16 @@ export async function POST(request) {
       );
     }
 
-    return Response.json({
-      reply: data.output_text || "No response",
-    });
+    const reply =
+      data?.output
+        ?.filter((item) => item.type === "message")
+        ?.flatMap((item) => item.content || [])
+        ?.filter((content) => content.type === "output_text")
+        ?.map((content) => content.text)
+        ?.join("\n")
+        ?.trim() || "No response";
+
+    return Response.json({ reply });
   } catch (error) {
     return Response.json(
       {
