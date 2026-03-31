@@ -29,10 +29,11 @@ export default function ChatWidget() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          message,
-          history: nextMessages.slice(-10),
-        }),
+       body: JSON.stringify({
+  message,
+  history: nextMessages.slice(-10),
+  currentPage: window.location.pathname,
+}), 
       });
 
       const data = await response.json();
