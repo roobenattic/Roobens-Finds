@@ -1,12 +1,26 @@
 export async function POST(request) {
   try {
     const body = await request.json();
-  const message = body?.message;
-const history = Array.isArray(body?.history) ? body.history : [];
-const currentPage = body?.currentPage || "/";
+    const message = body?.message;
+    const history = Array.isArray(body?.history) ? body.history : [];
+    const currentPage = body?.currentPage || "/";
+
     if (!message) {
       return Response.json({ error: "Message is required" }, { status: 400 });
     }
+
+    const pageContextMap = {
+      "/": "The visitor is on the homepage. Stay general and help them understand the offer.",
+      "/tools": "The visitor is on the tools page. Focus on tools, features, benefits, and how to get started.",
+      "/contact": "The visitor is on the contact page. Guide them toward contacting us or sharing what they need.",
+      "/about": "The visitor is on the about page. Explain the brand, purpose, and who this is for.",
+      "/finds": "The visitor is on the finds page. Focus on curated finds and recommendations.",
+      "/product": "The visitor is on the product page. Focus on the product and next-step questions."
+    };
+
+    const pageContext =
+      pageContextMap[currentPage] ||
+      `The visitor is on the page "${currentPage}". Adapt naturally to that page.`;
 
     const formattedHistory = history.map((item) => ({
       role: item.sender === "Bot" ? "assistant" : "user",
@@ -22,30 +36,11 @@ const currentPage = body?.currentPage || "/";
       body: JSON.stringify({
         model: "gpt-4.1-mini",
         input: [
-         {
-  role: "system",
-  content: `
-You are the website assistant for Roobens Finds.
-
-Be short, clear, warm, and professional.
-
-Important rules:
-- Do NOT restart the conversation if context exists.
-- Do NOT repeat greetings.
-- Remember what the user already said.
-- Move the conversation forward naturally.
-
-Page awareness:
-The user is currently on: ${currentPage}
-
-Behavior:
-- If on "/tools": focus on tools, features, and benefits.
-- If on "/contact": guide the user to contact or submit info.
-- If on "/about": explain the brand and purpose.
-- Otherwise: stay general and helpful.
-
-Always adapt your answer based on the page.
-},
+          {
+            role: "system",
+            content:
+              "You are the website assistant for Roobens Finds. Be short, clear, warm, and professional. Do not restart the conversation if context already exists. Do not repeat greetings after the first message. Remember what the visitor already said. Do not ask the same question again if they already answered it. Move the conversation forward naturally. Keep replies concise. " +
+              pageContext,
           },
           ...formattedHistory,
           {
