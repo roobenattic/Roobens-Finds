@@ -38,17 +38,15 @@ export default function ChatWidget() {
 
       const data = await response.json();
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          sender: "Bot",
-          text:
-            data.reply ||
-            `${data.error || "Request failed"}${
-              data.details ? `: ${data.details}` : ""
-            }`,
-        },
-      ]);
+     setMessages((prev) => [
+  ...prev,
+  {
+    sender: "Bot",
+    text:
+      data.reply +
+      (data.sheetDebug ? `\n\n[Lead debug: ${data.sheetDebug}]` : ""),
+  },
+]);
     } catch {
       setMessages((prev) => [
         ...prev,
