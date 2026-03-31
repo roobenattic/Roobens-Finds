@@ -1,22 +1,21 @@
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function ChatWidget() {
-  const [messages, setMessages] = useState([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { sender: "Bot", text: "Hi! How can I help you today?" },
+  ]);
   const [input, setInput] = useState("");
 
-  function addMessage(sender, text) {
-    setMessages((prev) => [...prev, { sender, text }]);
-  }
-
-  async function sendMessage() {
+  const sendMessage = async () => {
     const message = input.trim();
     if (!message) return;
 
-    addMessage("You", message);
+    setMessages((prev) => [...prev, { sender: "You", text: message }]);
     setInput("");
 
     try {
-      const res = await fetch("/api/chat", {
+      const response = await fetch("/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -24,85 +23,134 @@ export default function ChatWidget() {
         body: JSON.stringify({ message }),
       });
 
-      const data = await res.json();
-      addMessage("Bot", data.reply || data.error || "No response");
-    } catch (err) {
-      addMessage("Bot", "Error connecting to chat");
-    }
-  }
+      const data = await response.json();
 
-  function handleKeyDown(e) {
-    if (e.key === "Enter") {
-      sendMessage();
+      setMessages((prev) => [
+        ...prev,
+        { sender: "Bot", text: data.reply || data.error || "No response" },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { sender: "Bot", text: "Chat is unavailable right now." },
+      ]);
     }
-  }
+  };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        bottom: "20px",
-        right: "20px",
-        width: "320px",
-        background: "#fff",
-        border: "1px solid #ddd",
-        borderRadius: "12px",
-        padding: "12px",
-        boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-        zIndex: 9999,
-      }}
-    >
-      <div style={{ fontWeight: 700, marginBottom: "8px" }}>
-        Roobens Finds Assistant
-      </div>
-
-      <div
-        style={{
-          height: "220px",
-          overflow: "auto",
-          border: "1px solid #eee",
-          borderRadius: "8px",
-          padding: "8px",
-          marginBottom: "8px",
-          fontSize: "14px",
-          background: "#fafafa",
-        }}
-      >
-        {messages.map((msg, index) => (
-          <div key={index} style={{ marginBottom: "8px" }}>
-            <strong>{msg.sender}:</strong> {msg.text}
+    <>
+      {isOpen && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: "90px",
+            right: "20px",
+            width: "320px",
+            backgroundColor: "#ffffff",
+            border: "1px solid #ddd",
+            borderRadius: "16px",
+            padding: "12px",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              fontWeight: "bold",
+              marginBottom: "8px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>Roobens Finds Assistant</span>
+            <button
+              onClick={() => setIsOpen(false)}
+              style={{
+                border: "none",
+                background: "transparent",
+                cursor: "pointer",
+                fontSize: "18px",
+              }}
+            >
+              ×
+            </button>
           </div>
-        ))}
-      </div>
 
-      <input
-        type="text"
-        placeholder="Type your question here..."
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyDown}
-        style={{
-          width: "100%",
-          padding: "10px",
-          marginBottom: "8px",
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          boxSizing: "border-box",
-        }}
-      />
+          <div
+            style={{
+              height: "220px",
+              overflowY: "auto",
+              border: "1px solid #eee",
+              borderRadius: "8px",
+              padding: "8px",
+              marginBottom: "8px",
+              fontSize: "14px",
+              backgroundColor: "#fafafa",
+            }}
+          >
+            {messages.map((msg, index) => (
+              <div key={index} style={{ marginBottom: "8px" }}>
+                <strong>{msg.sender}:</strong> {msg.text}
+              </div>
+            ))}
+          </div>
+
+          <input
+            type="text"
+            value={input}
+            placeholder="Type your question here..."
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") sendMessage();
+            }}
+            style={{
+              width: "100%",
+              padding: "10px",
+              marginBottom: "8px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              boxSizing: "border-box",
+            }}
+          />
+
+          <button
+            onClick={sendMessage}
+            style={{
+              width: "100%",
+              padding: "10px",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              backgroundColor: "#111827",
+              color: "#ffffff",
+            }}
+          >
+            Send
+          </button>
+        </div>
+      )}
 
       <button
-        onClick={sendMessage}
+        onClick={() => setIsOpen(!isOpen)}
         style={{
-          width: "100%",
-          padding: "10px",
+          position: "fixed",
+          bottom: "20px",
+          right: "20px",
+          width: "60px",
+          height: "60px",
+          borderRadius: "999px",
           border: "none",
-          borderRadius: "8px",
+          backgroundColor: "#f97316",
+          color: "#ffffff",
+          fontSize: "24px",
           cursor: "pointer",
+          boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+          zIndex: 10000,
         }}
       >
-        Send
+        💬
       </button>
-    </div>
+    </>
   );
 }
