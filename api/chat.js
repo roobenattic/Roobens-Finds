@@ -14,7 +14,7 @@ export async function POST(request) {
         Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "gpt-5-mini",
+        model: "gpt-4.1-mini",
         instructions:
           "You are the website assistant for Roobens Finds. Be short, clear, friendly, and helpful. Guide visitors toward the next best step. If they want to work with us, ask for their name, business name, email, phone, and what they need.",
         input: message,
