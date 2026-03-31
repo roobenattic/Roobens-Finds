@@ -60,8 +60,8 @@ export async function POST(request) {
       lowerMessage.includes("quote") ||
       lowerMessage.includes("pricing");
 
-    if (looksLikeLead) {
-      await fetch("https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec", {
+        if (looksLikeLead) {
+      const sheetResponse = await fetch("https://script.google.com/macros/s/AKfycbwIZAX2EWOCZq25r4LUg46GQlc_f0GYzoiX4hyB976huYkj13DXZZDqYsiH5gMZkLae/exec", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -74,16 +74,13 @@ export async function POST(request) {
           need: message,
         }),
       });
-    }
 
-    return Response.json({ reply });
-  } catch (error) {
-    return Response.json(
-      {
-        error: "Something went wrong",
-        details: error?.message || "Unknown error",
-      },
-      { status: 500 }
-    );
-  }
-}
+      const sheetData = await sheetResponse.json().catch(() => ({}));
+
+      if (!sheetResponse.ok || sheetData.success === false) {
+        return Response.json({
+          reply,
+          sheetError: sheetData.error || "Lead save failed"
+        });
+      }
+    }
