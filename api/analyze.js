@@ -1,4 +1,4 @@
-import { parsePortfolioText } from "../src/lib/portfolioParser.js";
+import { parsePortfolioText } from "../lib/portfolioParser.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
