@@ -1,3 +1,4 @@
+import PlannerTest from "./pages/PlannerTest";
 import ChatWidget from "./components/ChatWidget";
 import PracticalDeskSetup from "./pages/PracticalDeskSetup";
 import LogitechMXKeys from "./pages/LogitechMXKeys";
@@ -40,6 +41,7 @@ function Router() {
       <ScrollToTop />
       <Navbar />
       <Switch>
+        <Route path="/planner-test" component={PlannerTest} />
         <Route path="/" component={Home} />
         <Route path="/product" component={Product} />
         <Route path="/about" component={About} />
