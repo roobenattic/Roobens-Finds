@@ -194,14 +194,16 @@ export default function PlannerTest() {
             ))}
           </div>
 
-          <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Allocation</h3>
-            {Object.entries(result.allocation || {}).map(([key, val], i) => (
-              <p key={i} style={{ margin: "6px 0" }}>
-                {key}: {val}%
-              </p>
-            ))}
-          </div>
+         {result.signals?.length > 0 && (
+  <div style={cardStyle}>
+    <h3 style={{ marginTop: 0 }}>Signals</h3>
+    {result.signals.map((line, i) => (
+      <p key={i} style={{ margin: "6px 0" }}>
+        {line}
+      </p>
+    ))}
+  </div>
+)} 
 
           {result.uiPlan?.sellLines?.length > 0 && (
             <div style={cardStyle}>
