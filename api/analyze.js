@@ -1,3 +1,4 @@
+import { mapPlanToTickers } from "../lib/tickerMapping.js";
 import { parsePortfolioText } from "../lib/portfolioParser.js";
 import { rebalancePortfolio } from "../lib/rebalance.js";
 
@@ -21,12 +22,15 @@ export default async function handler(req, res) {
     }
 
     const parsed = parsePortfolioText(text, totalValue);
-    const plan = rebalancePortfolio(parsed, "balanced");
+const strategy = "balanced";
+const plan = rebalancePortfolio(parsed, strategy);
+const tickerPlan = mapPlanToTickers(parsed, plan, strategy);
 
-    return res.status(200).json({
-      ...parsed,
-      plan
-    });
+return res.status(200).json({
+  ...parsed,
+  plan,
+  tickerPlan
+});
   } catch (err) {
     return res.status(500).json({
       error: "Server error",
