@@ -22,7 +22,7 @@ export default function PlannerTest() {
     setOcrLoading(true);
 
     try {
-      const Tesseract = (await import("tesseract.js")).default;
+      const Tesseract = await import("tesseract.js");
       const {
         data: { text }
       } = await Tesseract.recognize(file, "eng");
