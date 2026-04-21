@@ -24,11 +24,13 @@ const { text, totalValue = 10000, strategy = "balanced" } = body;
     const parsed = parsePortfolioText(text, totalValue);
 const plan = rebalancePortfolio(parsed, strategy);
 const tickerPlan = mapPlanToTickers(parsed, plan, strategy);
+  const uiPlan = formatTickerPlanForUI(tickerPlan);
 
 return res.status(200).json({
   ...parsed,
   plan,
-  tickerPlan
+  tickerPlan,
+  uiPlan
 });
   } catch (err) {
     return res.status(500).json({
