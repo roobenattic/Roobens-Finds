@@ -15,14 +15,12 @@ export default async function handler(req, res) {
 
   try {
     const body = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
-    const { text, totalValue = 10000 } = body;
-
+const { text, totalValue = 10000, strategy = "balanced" } = body;
     if (!text) {
       return res.status(400).json({ error: "No OCR text provided" });
     }
 
     const parsed = parsePortfolioText(text, totalValue);
-const strategy = "balanced";
 const plan = rebalancePortfolio(parsed, strategy);
 const tickerPlan = mapPlanToTickers(parsed, plan, strategy);
 
