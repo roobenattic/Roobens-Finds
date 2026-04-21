@@ -1,3 +1,4 @@
+import { formatTickerPlanForUI } from "../lib/formatters.js";
 import { mapPlanToTickers } from "../lib/tickerMapping.js";
 import { parsePortfolioText } from "../lib/portfolioParser.js";
 import { rebalancePortfolio } from "../lib/rebalance.js";
