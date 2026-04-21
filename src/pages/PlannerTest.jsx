@@ -16,13 +16,21 @@ export default function PlannerTest() {
     transition: "all 0.2s ease"
   };
 
+  const cardStyle = {
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: "14px",
+    padding: "16px",
+    marginTop: "16px"
+  };
+
   async function handleImageOCR(file) {
     if (!file) return;
 
     setOcrLoading(true);
 
     try {
-      const Tesseract = await import("tesseract.js");
+      const Tesseract = (await import("tesseract.js")).default;
       const {
         data: { text }
       } = await Tesseract.recognize(file, "eng");
@@ -71,7 +79,7 @@ export default function PlannerTest() {
         margin: "100px auto 40px",
         padding: "24px",
         background: "#ffffff",
-        border: "5px solid #e5e7eb",
+        border: "1px solid #e5e7eb",
         borderRadius: "16px",
         boxSizing: "border-box"
       }}
@@ -169,19 +177,54 @@ export default function PlannerTest() {
           : "Analyze"}
       </button>
 
-      {result && (
-        <pre
-          style={{
-            marginTop: "20px",
-            whiteSpace: "pre-wrap",
-            background: "#f9fafb",
-            padding: "16px",
-            borderRadius: "10px",
-            overflowX: "auto"
-          }}
-        >
-          {JSON.stringify(result, null, 2)}
-        </pre>
+      {result?.error && (
+        <div style={cardStyle}>
+          <strong>Error:</strong> {result.error}
+        </div>
+      )}
+
+      {result && !result.error && (
+        <>
+          <div style={cardStyle}>
+            <h3 style={{ marginTop: 0 }}>Portfolio</h3>
+            {(result.holdings || []).map((h, i) => (
+              <p key={i} style={{ margin: "6px 0" }}>
+                {h.ticker} — {h.percent}% (${h.estimatedValue})
+              </p>
+            ))}
+          </div>
+
+          <div style={cardStyle}>
+            <h3 style={{ marginTop: 0 }}>Allocation</h3>
+            {Object.entries(result.allocation || {}).map(([key, val], i) => (
+              <p key={i} style={{ margin: "6px 0" }}>
+                {key}: {val}%
+              </p>
+            ))}
+          </div>
+
+          {result.uiPlan?.sellLines?.length > 0 && (
+            <div style={cardStyle}>
+              <h3 style={{ marginTop: 0 }}>{result.uiPlan.sellTitle}</h3>
+              {result.uiPlan.sellLines.map((line, i) => (
+                <p key={i} style={{ margin: "6px 0" }}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
+
+          {result.uiPlan?.buyLines?.length > 0 && (
+            <div style={cardStyle}>
+              <h3 style={{ marginTop: 0 }}>{result.uiPlan.buyTitle}</h3>
+              {result.uiPlan.buyLines.map((line, i) => (
+                <p key={i} style={{ margin: "6px 0" }}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
