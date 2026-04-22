@@ -137,21 +137,36 @@ export default function PlannerTest() {
         placeholder="OCR text will appear here..."
       />
 
-      <select
-        value={strategy}
-        onChange={(e) => setStrategy(e.target.value)}
+     <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+  {["balanced", "growth", "income"].map((type) => {
+    const active = strategy === type;
+
+    return (
+      <button
+        key={type}
+        onClick={() => setStrategy(type)}
         style={{
-          display: "block",
-          marginBottom: "16px",
-          padding: "10px 12px",
-          border: "1px solid #d1d5db",
-          borderRadius: "10px"
+          padding: "10px 16px",
+          borderRadius: "10px",
+          border: active ? "2px solid #2563eb" : "1px solid #d1d5db",
+          background: active ? "#2563eb" : "#ffffff",
+          color: active ? "#ffffff" : "#111827",
+          fontWeight: "600",
+          cursor: "pointer",
+          transition: "all 0.2s ease"
+        }}
+        onMouseEnter={(e) => {
+          if (!active) e.target.style.background = "#f3f4f6";
+        }}
+        onMouseLeave={(e) => {
+          if (!active) e.target.style.background = "#ffffff";
         }}
       >
-        <option value="balanced">Balanced</option>
-        <option value="income">Income</option>
-        <option value="growth">Growth</option>
-      </select>
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </button>
+    );
+  })}
+</div>
 
       <button
         onClick={handleAnalyze}
