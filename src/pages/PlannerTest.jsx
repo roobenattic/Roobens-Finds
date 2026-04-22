@@ -6,9 +6,10 @@ export default function PlannerTest() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-const buttonStyle = {
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+
+  const buttonStyle = {
     padding: "12px 18px",
     borderRadius: "10px",
     border: "none",
@@ -25,18 +26,24 @@ const buttonStyle = {
     marginTop: "16px"
   };
 
-  async function handleImageOCR(file) {
-    if (!file) return "";
+  async function handleImageOCR(files) {
+    if (!files || files.length === 0) return "";
 
     setOcrLoading(true);
 
     try {
       const Tesseract = (await import("tesseract.js")).default;
-      const {
-        data: { text }
-      } = await Tesseract.recognize(file, "eng");
+      let combinedText = "";
 
-      const cleanedText = text || "";
+      for (const file of files) {
+        const {
+          data: { text }
+        } = await Tesseract.recognize(file, "eng");
+
+        combinedText += `\n${text || ""}`;
+      }
+
+      const cleanedText = combinedText.trim();
       setOcrText(cleanedText);
       return cleanedText;
     } catch (err) {
@@ -50,8 +57,8 @@ const buttonStyle = {
   async function handleAnalyze() {
     let textToAnalyze = ocrText;
 
-    if (selectedFile && !ocrText.trim()) {
-      textToAnalyze = await handleImageOCR(selectedFile);
+    if (selectedFiles.length > 0 && !ocrText.trim()) {
+      textToAnalyze = await handleImageOCR(selectedFiles);
     }
 
     if (!textToAnalyze.trim()) return;
@@ -82,6 +89,13 @@ const buttonStyle = {
     }
   }
 
+  function clearImages() {
+    setSelectedFiles([]);
+    setImagePreviews([]);
+    setOcrText("");
+    setResult(null);
+  }
+
   return (
     <div
       style={{
@@ -96,55 +110,88 @@ const buttonStyle = {
     >
       <h1 style={{ marginBottom: "16px", fontSize: "28px" }}>Planner Test</h1>
 
-      <label
-        htmlFor="portfolio-upload"
-        style={{
-          ...buttonStyle,
-          display: "inline-block",
-          background: "#111827",
-          color: "#ffffff",
-          marginBottom: "16px"
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = "scale(1.05)";
-          e.target.style.opacity = "0.9";
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = "scale(1)";
-          e.target.style.opacity = "1";
-        }}
-      >
-        Upload Portfolio Screenshot
-      </label>
+      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
+        <label
+          htmlFor="portfolio-upload"
+          style={{
+            ...buttonStyle,
+            display: "inline-block",
+            background: "#111827",
+            color: "#ffffff"
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "scale(1.05)";
+            e.target.style.opacity = "0.9";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "scale(1)";
+            e.target.style.opacity = "1";
+          }}
+        >
+          Upload Portfolio Screenshots
+        </label>
+
+        <button
+          onClick={clearImages}
+          style={{
+            ...buttonStyle,
+            background: "#e5e7eb",
+            color: "#111827"
+          }}
+          onMouseEnter={(e) => {
+            e.target.style.transform = "scale(1.05)";
+            e.target.style.opacity = "0.9";
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.transform = "scale(1)";
+            e.target.style.opacity = "1";
+          }}
+        >
+          Clear
+        </button>
+      </div>
 
       <input
         id="portfolio-upload"
         type="file"
         accept="image/*"
+        multiple
         onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) {
-            setSelectedFile(file);
-            setImagePreview(URL.createObjectURL(file));
+          const files = Array.from(e.target.files || []);
+          if (files.length > 0) {
+            setSelectedFiles(files);
+            setImagePreviews(files.map((file) => URL.createObjectURL(file)));
             setResult(null);
           }
         }}
         style={{ display: "none" }}
       />
 
-      {imagePreview && (
-        <img
-          src={imagePreview}
-          alt="preview"
+      {imagePreviews.length > 0 && (
+        <div
           style={{
-            width: "100%",
-            maxHeight: "250px",
-            objectFit: "contain",
-            marginBottom: "16px",
-            borderRadius: "10px",
-            border: "1px solid #e5e7eb"
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+            gap: "12px",
+            marginBottom: "16px"
           }}
-        />
+        >
+          {imagePreviews.map((src, index) => (
+            <img
+              key={index}
+              src={src}
+              alt={`preview-${index}`}
+              style={{
+                width: "100%",
+                height: "180px",
+                objectFit: "contain",
+                borderRadius: "10px",
+                border: "1px solid #e5e7eb",
+                background: "#fff"
+              }}
+            />
+          ))}
+        </div>
       )}
 
       <textarea
@@ -163,7 +210,7 @@ const buttonStyle = {
           boxSizing: "border-box",
           resize: "vertical"
         }}
-        placeholder="OCR text will appear here..."
+        placeholder="OCR text from all uploaded screenshots will appear here..."
       />
 
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
@@ -215,7 +262,7 @@ const buttonStyle = {
         }}
       >
         {ocrLoading
-          ? "Reading image..."
+          ? "Reading images..."
           : loading
           ? "Analyzing..."
           : "Analyze"}
