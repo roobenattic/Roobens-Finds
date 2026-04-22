@@ -6,11 +6,9 @@ export default function PlannerTest() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
-const [selectedFile, setSelectedFile] = useState(null);
-const [selectedFile, setSelectedFile] = useState(null);
-const [imagePreview, setImagePreview] = useState(null);
-  const buttonStyle = {
-
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+const buttonStyle = {
     padding: "12px 18px",
     borderRadius: "10px",
     border: "none",
@@ -28,7 +26,7 @@ const [imagePreview, setImagePreview] = useState(null);
   };
 
   async function handleImageOCR(file) {
-    if (!file) return;
+    if (!file) return "";
 
     setOcrLoading(true);
 
@@ -38,16 +36,25 @@ const [imagePreview, setImagePreview] = useState(null);
         data: { text }
       } = await Tesseract.recognize(file, "eng");
 
-      setOcrText(text || "");
+      const cleanedText = text || "";
+      setOcrText(cleanedText);
+      return cleanedText;
     } catch (err) {
       console.error(err);
+      return "";
     } finally {
       setOcrLoading(false);
     }
   }
 
   async function handleAnalyze() {
-    if (!ocrText.trim()) return;
+    let textToAnalyze = ocrText;
+
+    if (selectedFile && !ocrText.trim()) {
+      textToAnalyze = await handleImageOCR(selectedFile);
+    }
+
+    if (!textToAnalyze.trim()) return;
 
     setLoading(true);
     setResult(null);
@@ -59,7 +66,7 @@ const [imagePreview, setImagePreview] = useState(null);
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          text: ocrText,
+          text: textToAnalyze,
           totalValue: 10000,
           strategy
         })
@@ -109,43 +116,33 @@ const [imagePreview, setImagePreview] = useState(null);
       >
         Upload Portfolio Screenshot
       </label>
-{imagePreview && (
-  <img
-    src={imagePreview}
-    alt="preview"
-    style={{
-      width: "100%",
-      maxHeight: "250px",
-      objectFit: "contain",
-      marginBottom: "16px",
-      borderRadius: "10px",
-      border: "1px solid #e5e7eb"
-    }}
-  />
-)}
+
       <input
         id="portfolio-upload"
         type="file"
         accept="image/*"
-     onChange={(e) => {
-  const file = e.target.files?.[0];
-  if (file) {
-    setSelectedFile(file);
-    setImagePreview(URL.createObjectURL(file));
-  }
-}}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            setSelectedFile(file);
+            setImagePreview(URL.createObjectURL(file));
+            setResult(null);
+          }
+        }}
         style={{ display: "none" }}
       />
 
       {imagePreview && (
         <img
           src={imagePreview}
-          alt="Portfolio Screenshot"
+          alt="preview"
           style={{
-            maxWidth: "100%",
-            maxHeight: "200px",
-            marginTop: "16px",
-            borderRadius: "10px"
+            width: "100%",
+            maxHeight: "250px",
+            objectFit: "contain",
+            marginBottom: "16px",
+            borderRadius: "10px",
+            border: "1px solid #e5e7eb"
           }}
         />
       )}
@@ -169,44 +166,39 @@ const [imagePreview, setImagePreview] = useState(null);
         placeholder="OCR text will appear here..."
       />
 
-     <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
-  {["balanced", "growth", "income"].map((type) => {
-    const active = strategy === type;
+      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
+        {["balanced", "growth", "income"].map((type) => {
+          const active = strategy === type;
 
-    return (
-      <button
-        key={type}
-        onClick={() => setStrategy(type)}
-        style={{
-          padding: "10px 16px",
-          borderRadius: "10px",
-          border: active ? "2px solid #2563eb" : "1px solid #d1d5db",
-          background: active ? "#2563eb" : "#ffffff",
-          color: active ? "#ffffff" : "#111827",
-          fontWeight: "600",
-          cursor: "pointer",
-          transition: "all 0.2s ease"
-        }}
-        onMouseEnter={(e) => {
-          if (!active) e.target.style.background = "#f3f4f6";
-        }}
-        onMouseLeave={(e) => {
-          if (!active) e.target.style.background = "#ffffff";
-        }}
-      >
-        {type.charAt(0).toUpperCase() + type.slice(1)}
-      </button>
-    );
-  })}
-</div>
+          return (
+            <button
+              key={type}
+              onClick={() => setStrategy(type)}
+              style={{
+                padding: "10px 16px",
+                borderRadius: "10px",
+                border: active ? "2px solid #2563eb" : "1px solid #d1d5db",
+                background: active ? "#2563eb" : "#ffffff",
+                color: active ? "#ffffff" : "#111827",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.target.style.background = "#f3f4f6";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.target.style.background = "#ffffff";
+              }}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          );
+        })}
+      </div>
 
       <button
-      onClick={async () => {
-  if (selectedFile) {
-    await handleImageOCR(selectedFile);
-  }
-  handleAnalyze();
-}}
+        onClick={handleAnalyze}
         disabled={loading || ocrLoading}
         style={{
           ...buttonStyle,
@@ -246,16 +238,25 @@ const [imagePreview, setImagePreview] = useState(null);
             ))}
           </div>
 
-         {result.signals?.length > 0 && (
-  <div style={cardStyle}>
-    <h3 style={{ marginTop: 0 }}>Signals</h3>
-    {result.signals.map((line, i) => (
-      <p key={i} style={{ margin: "6px 0" }}>
-        {line}
-      </p>
-    ))}
-  </div>
-)} 
+          <div style={cardStyle}>
+            <h3 style={{ marginTop: 0 }}>Allocation</h3>
+            {Object.entries(result.allocation || {}).map(([key, val], i) => (
+              <p key={i} style={{ margin: "6px 0" }}>
+                {key}: {val}%
+              </p>
+            ))}
+          </div>
+
+          {result.signals?.length > 0 && (
+            <div style={cardStyle}>
+              <h3 style={{ marginTop: 0 }}>Signals</h3>
+              {result.signals.map((line, i) => (
+                <p key={i} style={{ margin: "6px 0" }}>
+                  {line}
+                </p>
+              ))}
+            </div>
+          )}
 
           {result.uiPlan?.sellLines?.length > 0 && (
             <div style={cardStyle}>
