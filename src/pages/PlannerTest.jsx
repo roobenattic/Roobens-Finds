@@ -6,6 +6,7 @@ export default function PlannerTest() {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
+const [selectedFile, setSelectedFile] = useState(null);
 
   const buttonStyle = {
     padding: "12px 18px",
@@ -111,10 +112,10 @@ export default function PlannerTest() {
         id="portfolio-upload"
         type="file"
         accept="image/*"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleImageOCR(file);
-        }}
+       onChange={(e) => {
+  const file = e.target.files?.[0];
+  if (file) setSelectedFile(file);
+}}
         style={{ display: "none" }}
       />
 
@@ -169,7 +170,12 @@ export default function PlannerTest() {
 </div>
 
       <button
-        onClick={handleAnalyze}
+      onClick={async () => {
+  if (selectedFile) {
+    await handleImageOCR(selectedFile);
+  }
+  handleAnalyze();
+}}
         disabled={loading || ocrLoading}
         style={{
           ...buttonStyle,
