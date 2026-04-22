@@ -7,8 +7,10 @@ export default function PlannerTest() {
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
 const [selectedFile, setSelectedFile] = useState(null);
-
+const [selectedFile, setSelectedFile] = useState(null);
+const [imagePreview, setImagePreview] = useState(null);
   const buttonStyle = {
+
     padding: "12px 18px",
     borderRadius: "10px",
     border: "none",
@@ -107,17 +109,46 @@ const [selectedFile, setSelectedFile] = useState(null);
       >
         Upload Portfolio Screenshot
       </label>
-
+{imagePreview && (
+  <img
+    src={imagePreview}
+    alt="preview"
+    style={{
+      width: "100%",
+      maxHeight: "250px",
+      objectFit: "contain",
+      marginBottom: "16px",
+      borderRadius: "10px",
+      border: "1px solid #e5e7eb"
+    }}
+  />
+)}
       <input
         id="portfolio-upload"
         type="file"
         accept="image/*"
-       onChange={(e) => {
+     onChange={(e) => {
   const file = e.target.files?.[0];
-  if (file) setSelectedFile(file);
+  if (file) {
+    setSelectedFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  }
 }}
         style={{ display: "none" }}
       />
+
+      {imagePreview && (
+        <img
+          src={imagePreview}
+          alt="Portfolio Screenshot"
+          style={{
+            maxWidth: "100%",
+            maxHeight: "200px",
+            marginTop: "16px",
+            borderRadius: "10px"
+          }}
+        />
+      )}
 
       <textarea
         value={ocrText}
