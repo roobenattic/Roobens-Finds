@@ -89,6 +89,48 @@ export default function PlannerTest() {
     }
   }
 
+  async function downloadPDF() {
+    const element = document.getElementById("result-section");
+    if (!element) return;
+
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF = (await import("jspdf")).default;
+
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+
+      const pageWidth = 210;
+      const pageHeight = 297;
+      const margin = 10;
+      const usableWidth = pageWidth - margin * 2;
+      const imgHeight = (canvas.height * usableWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = margin;
+
+      pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
+      heightLeft -= pageHeight - margin * 2;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight + margin;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
+        heightLeft -= pageHeight - margin * 2;
+      }
+
+      pdf.save("portfolio-plan.pdf");
+    } catch (err) {
+      console.error("PDF export error:", err);
+    }
+  }
+
   function clearImages() {
     setSelectedFiles([]);
     setImagePreviews([]);
@@ -149,6 +191,27 @@ export default function PlannerTest() {
         >
           Clear
         </button>
+
+        {result && !result.error && (
+          <button
+            onClick={downloadPDF}
+            style={{
+              ...buttonStyle,
+              background: "#111827",
+              color: "#ffffff"
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = "scale(1.05)";
+              e.target.style.opacity = "0.9";
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = "scale(1)";
+              e.target.style.opacity = "1";
+            }}
+          >
+            Download PDF
+          </button>
+        )}
       </div>
 
       <input
@@ -275,7 +338,7 @@ export default function PlannerTest() {
       )}
 
       {result && !result.error && (
-        <>
+        <div id="result-section">
           <div style={cardStyle}>
             <h3 style={{ marginTop: 0 }}>Portfolio</h3>
             {(result.holdings || []).map((h, i) => (
@@ -326,7 +389,7 @@ export default function PlannerTest() {
               ))}
             </div>
           )}
-        </>
+        </div>
       )}
     </div>
   );
