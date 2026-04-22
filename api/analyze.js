@@ -1,3 +1,4 @@
+import { buildSnapshot, buildSignals } from "../lib/insights.js";
 import { formatTickerPlanForUI } from "../lib/formatters.js";
 import { mapPlanToTickers } from "../lib/tickerMapping.js";
 import { parsePortfolioText } from "../lib/portfolioParser.js";
@@ -25,12 +26,17 @@ const { text, totalValue = 10000, strategy = "balanced" } = body;
 const plan = rebalancePortfolio(parsed, strategy);
 const tickerPlan = mapPlanToTickers(parsed, plan, strategy);
   const uiPlan = formatTickerPlanForUI(tickerPlan);
-
+const parsed = parsePortfolioText(text, totalValue);
+const plan = rebalancePortfolio(parsed, strategy);
+const tickerPlan = mapPlanToTickers(parsed, plan, strategy);
+const uiPlan = formatTickerPlanForUI(tickerPlan);
 return res.status(200).json({
   ...parsed,
   plan,
   tickerPlan,
-  uiPlan
+  uiPlan,
+  snapshot,
+  signals
 });
   } catch (err) {
     return res.status(500).json({
