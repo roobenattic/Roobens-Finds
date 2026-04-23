@@ -1,27 +1,31 @@
 /**
  * Navbar — Roobens Finds
- * Brand: Deep Slate #495E79, Coral #F16953, Soft Peach #FECFA5
- * Fonts: Poppins (nav items), DM Sans (body)
- * Architecture: Home | Tools | Finds | Blog | About | Contact | Shop (external)
+ * Updated flow:
+ * - Planner link visible in navbar
+ * - Free = Try Planner
+ * - Premium = Unlock AI Premium
  */
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, Download, ExternalLink } from "lucide-react";
+import { Menu, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FREE_DOWNLOAD_URL, PREMIUM_CHECKOUT_URL, isConfigured } from "@/config";
+import { PREMIUM_CHECKOUT_URL, isConfigured } from "@/config";
 
-const LOGO_DARK = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/RF_primary_logo_coral_4c3da9c0.png";
+const LOGO_DARK =
+  "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/RF_primary_logo_coral_4c3da9c0.png";
 
 const navLinks = [
   { label: "Home", href: "/" },
   { label: "Tools", href: "/tools" },
+  { label: "Planner", href: "/portfolio-planner" },
   { label: "Finds", href: "/finds" },
   { label: "Blog", href: "/blog" },
   { label: "About", href: "/about" },
-  { label: "Contact", href: "/contact" },
+  { label: "Contact", href: "/contact" }
 ];
 
 const SHOP_URL = "https://shop.roobensfinds.com";
+const FREE_PLANNER_ROUTE = "/portfolio-planner";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -51,7 +55,6 @@ export default function Navbar() {
     >
       <div className="container">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <img
               src={LOGO_DARK}
@@ -62,7 +65,6 @@ export default function Navbar() {
             />
           </Link>
 
-          {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => (
               <Link
@@ -78,7 +80,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {/* Shop — external link */}
+
             <a
               href={SHOP_URL}
               target="_blank"
@@ -91,39 +93,41 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-2.5">
-            {isConfigured(FREE_DOWNLOAD_URL) ? (
-              <a href={FREE_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-medium text-sm transition-all" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                  <Download className="mr-1.5 w-3.5 h-3.5" />
-                  Free Planner
-                </Button>
-              </a>
-            ) : (
-              <Link href="/product">
-                <Button variant="outline" size="sm" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-medium text-sm transition-all" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                  <Download className="mr-1.5 w-3.5 h-3.5" />
-                  Free Planner
-                </Button>
-              </Link>
-            )}
+            <Link href={FREE_PLANNER_ROUTE}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-medium text-sm transition-all"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
+              >
+                Try Planner
+              </Button>
+            </Link>
+
             {isConfigured(PREMIUM_CHECKOUT_URL) ? (
               <a href={PREMIUM_CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
-                <Button size="sm" className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold text-sm shadow-md shadow-[#F16953]/20" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                  Get Premium — $17
+                <Button
+                  size="sm"
+                  className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold text-sm shadow-md shadow-[#F16953]/20"
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
+                >
+                  Unlock AI Premium
                 </Button>
               </a>
             ) : (
               <Link href="/product">
-                <Button size="sm" className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold text-sm shadow-md shadow-[#F16953]/20" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                  Get Premium — $17
+                <Button
+                  size="sm"
+                  className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold text-sm shadow-md shadow-[#F16953]/20"
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
+                >
+                  Unlock AI Premium
                 </Button>
               </Link>
             )}
           </div>
 
-          {/* Mobile Toggle */}
           <button
             onClick={() => setIsOpen(!isOpen)}
             className="md:hidden text-[#495E79] p-2 rounded-md hover:bg-[#FAF9F7] transition-colors"
@@ -134,7 +138,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-white border-t border-[#FECFA5]/60 shadow-lg">
           <div className="container py-4 flex flex-col gap-1">
@@ -152,7 +155,7 @@ export default function Navbar() {
                 {link.label}
               </Link>
             ))}
-            {/* Shop — external */}
+
             <a
               href={SHOP_URL}
               target="_blank"
@@ -163,32 +166,34 @@ export default function Navbar() {
               Shop
               <ExternalLink className="w-3.5 h-3.5 opacity-50" />
             </a>
+
             <div className="mt-3 pt-3 border-t border-[#FECFA5]/60 flex flex-col gap-2">
-              {isConfigured(FREE_DOWNLOAD_URL) ? (
-                <a href={FREE_DOWNLOAD_URL} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" className="w-full border-[#495E79]/25 text-[#495E79] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    <Download className="mr-2 w-4 h-4" />
-                    Download Free Planner
-                  </Button>
-                </a>
-              ) : (
-                <Link href="/product">
-                  <Button variant="outline" className="w-full border-[#495E79]/25 text-[#495E79] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    <Download className="mr-2 w-4 h-4" />
-                    Download Free Planner
-                  </Button>
-                </Link>
-              )}
+              <Link href={FREE_PLANNER_ROUTE}>
+                <Button
+                  variant="outline"
+                  className="w-full border-[#495E79]/25 text-[#495E79] font-medium"
+                  style={{ fontFamily: "'Poppins', sans-serif" }}
+                >
+                  Try Free Planner
+                </Button>
+              </Link>
+
               {isConfigured(PREMIUM_CHECKOUT_URL) ? (
                 <a href={PREMIUM_CHECKOUT_URL} target="_blank" rel="noopener noreferrer">
-                  <Button className="w-full bg-[#F16953] hover:bg-[#d95840] text-white font-semibold" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    Get Premium — $17
+                  <Button
+                    className="w-full bg-[#F16953] hover:bg-[#d95840] text-white font-semibold"
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
+                  >
+                    Unlock AI Premium
                   </Button>
                 </a>
               ) : (
                 <Link href="/product">
-                  <Button className="w-full bg-[#F16953] hover:bg-[#d95840] text-white font-semibold" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                    Get Premium — $17
+                  <Button
+                    className="w-full bg-[#F16953] hover:bg-[#d95840] text-white font-semibold"
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
+                  >
+                    Unlock AI Premium
                   </Button>
                 </Link>
               )}
