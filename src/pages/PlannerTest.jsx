@@ -1,6 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 export default function PlannerTest() {
+  const fileInputRef = useRef(null);
+
   const [ocrText, setOcrText] = useState("");
   const [strategy, setStrategy] = useState("balanced");
   const [result, setResult] = useState(null);
@@ -102,61 +104,43 @@ export default function PlannerTest() {
     }
   }
 
-  async function downloadPDF() {
-    const element = document.getElementById("result-section");
-    if (!element) return;
-
-    try {
-      const html2canvas = (await import("html2canvas")).default;
-      const jsPDFModule = await import("jspdf");
-      const JsPDF = jsPDFModule.jsPDF || jsPDFModule.default;
-
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: "#f5f5f7"
-      });
-
-      const imgData = canvas.toDataURL("image/png");
-      const pdf = new JsPDF("p", "mm", "a4");
-      const pdfWidth = 190;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 10;
-
-      pdf.addImage(imgData, "PNG", 10, position, pdfWidth, imgHeight);
-      heightLeft -= pageHeight - 20;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + 10;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", 10, position, pdfWidth, imgHeight);
-        heightLeft -= pageHeight - 20;
-      }
-
-      pdf.save("portfolio-simulation.pdf");
-    } catch (err) {
-      console.error("PDF export error:", err);
-      setErrorMessage("PDF export failed. Please try again.");
+  function resetFileInput() {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   }
 
   function clearImages() {
-    imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+    imagePreviews.forEach((item) => URL.revokeObjectURL(item.url));
     setSelectedFiles([]);
     setImagePreviews([]);
     setOcrText("");
     setResult(null);
     setErrorMessage("");
+    resetFileInput();
+  }
+
+  function removeImage(indexToRemove) {
+    const previewToRemove = imagePreviews[indexToRemove];
+    if (previewToRemove?.url) {
+      URL.revokeObjectURL(previewToRemove.url);
+    }
+
+    const nextFiles = selectedFiles.filter((_, index) => index !== indexToRemove);
+    const nextPreviews = imagePreviews.filter((_, index) => index !== indexToRemove);
+
+    setSelectedFiles(nextFiles);
+    setImagePreviews(nextPreviews);
+    setResult(null);
+    setErrorMessage("");
+    resetFileInput();
   }
 
   const styles = {
     page: {
       minHeight: "100vh",
       background: "#f5f5f7",
-      padding: "56px 20px"
+      padding: "104px 20px 56px"
     },
     shell: {
       maxWidth: "860px",
@@ -365,10 +349,26 @@ export default function PlannerTest() {
       color: "#fff",
       fontSize: "12px",
       fontWeight: 600,
-      maxWidth: "calc(100% - 20px)",
+      maxWidth: "calc(100% - 52px)",
       whiteSpace: "nowrap",
       overflow: "hidden",
       textOverflow: "ellipsis"
+    },
+    removePreviewButton: {
+      position: "absolute",
+      top: "10px",
+      right: "10px",
+      width: "30px",
+      height: "30px",
+      borderRadius: "999px",
+      border: "none",
+      background: "rgba(17,17,17,0.82)",
+      color: "#ffffff",
+      fontSize: "16px",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center"
     },
     statusText: {
       fontSize: "14px",
@@ -395,6 +395,24 @@ export default function PlannerTest() {
       fontSize: "13px",
       color: "#6e6e73",
       marginTop: "10px"
+    },
+    premiumNote: {
+      marginTop: "18px",
+      padding: "16px 18px",
+      borderRadius: "18px",
+      background: "linear-gradient(180deg, #111111 0%, #1d1d1f 100%)",
+      color: "#ffffff"
+    },
+    premiumTitle: {
+      margin: "0 0 6px",
+      fontSize: "16px",
+      fontWeight: 700
+    },
+    premiumText: {
+      margin: 0,
+      fontSize: "14px",
+      lineHeight: 1.55,
+      color: "rgba(255,255,255,0.82)"
     }
   };
 
@@ -457,6 +475,7 @@ export default function PlannerTest() {
               </div>
 
               <input
+                ref={fileInputRef}
                 id="portfolio-upload"
                 type="file"
                 accept="image/*"
@@ -466,30 +485,59 @@ export default function PlannerTest() {
                   const files = Array.from(e.target.files || []);
                   if (!files.length) return;
 
-                  imagePreviews.forEach((url) => URL.revokeObjectURL(url));
+                  const existingKeys = new Set(
+                    selectedFiles.map(
+                      (file) => `${file.name}-${file.size}-${file.lastModified}`
+                    )
+                  );
 
-                  setSelectedFiles(files);
-                  setImagePreviews(files.map((file) => URL.createObjectURL(file)));
+                  const newUniqueFiles = files.filter((file) => {
+                    const key = `${file.name}-${file.size}-${file.lastModified}`;
+                    return !existingKeys.has(key);
+                  });
+
+                  if (!newUniqueFiles.length) {
+                    resetFileInput();
+                    return;
+                  }
+
+                  setSelectedFiles((prev) => [...prev, ...newUniqueFiles]);
+                  setImagePreviews((prev) => [
+                    ...prev,
+                    ...newUniqueFiles.map((file) => ({
+                      url: URL.createObjectURL(file),
+                      name: file.name
+                    }))
+                  ]);
                   setResult(null);
                   setErrorMessage("");
+                  resetFileInput();
                 }}
               />
 
               <p style={styles.smallMuted}>
-                Drag in portfolio screenshots through your system picker, then analyze when you're ready.
+                Select one or multiple screenshots, then analyze when you're ready.
               </p>
 
               {imagePreviews.length > 0 && (
                 <div style={styles.previewGrid}>
-                  {imagePreviews.map((src, index) => (
-                    <div key={src} style={styles.previewCard}>
+                  {imagePreviews.map((item, index) => (
+                    <div key={`${item.url}-${index}`} style={styles.previewCard}>
                       <img
-                        src={src}
+                        src={item.url}
                         alt={`preview-${index}`}
                         style={styles.previewImage}
                       />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        style={styles.removePreviewButton}
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
                       <div style={styles.previewLabel}>
-                        {selectedFiles[index]?.name || `Screenshot ${index + 1}`}
+                        {item.name || `Screenshot ${index + 1}`}
                       </div>
                     </div>
                   ))}
@@ -644,23 +692,12 @@ export default function PlannerTest() {
                 ))}
               </div>
 
-              <button
-                type="button"
-                onClick={downloadPDF}
-                style={styles.primaryButton}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-1px) scale(1.01)";
-                  e.currentTarget.style.boxShadow = "0 18px 36px rgba(0,0,0,0.2)";
-                  e.currentTarget.style.background = "#1c1c1e";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0) scale(1)";
-                  e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.16)";
-                  e.currentTarget.style.background = "#111111";
-                }}
-              >
-                Download Report
-              </button>
+              <div style={styles.premiumNote}>
+                <p style={styles.premiumTitle}>Want the downloadable report?</p>
+                <p style={styles.premiumText}>
+                  The free planner is designed for on-screen review only. Premium unlocks the polished downloadable report.
+                </p>
+              </div>
             </div>
           )}
         </div>
