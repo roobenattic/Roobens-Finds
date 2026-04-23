@@ -9,6 +9,9 @@ export default function PlannerTest() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
 
+  const DISCLAIMER =
+    "This tool is for informational and educational purposes only. It does not provide financial or investment advice. All outputs are based on your selected inputs and assumptions.";
+
   const buttonStyle = {
     padding: "12px 18px",
     borderRadius: "10px",
@@ -106,26 +109,8 @@ export default function PlannerTest() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
 
-      const pageWidth = 210;
-      const pageHeight = 297;
-      const margin = 10;
-      const usableWidth = pageWidth - margin * 2;
-      const imgHeight = (canvas.height * usableWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = margin;
-
-      pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
-      heightLeft -= pageHeight - margin * 2;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight + margin;
-        pdf.addPage();
-        pdf.addImage(imgData, "PNG", margin, position, usableWidth, imgHeight);
-        heightLeft -= pageHeight - margin * 2;
-      }
-
-      pdf.save("portfolio-plan.pdf");
+      pdf.addImage(imgData, "PNG", 10, 10, 190, 0);
+      pdf.save("portfolio-simulation.pdf");
     } catch (err) {
       console.error("PDF export error:", err);
     }
@@ -139,256 +124,96 @@ export default function PlannerTest() {
   }
 
   return (
-    <div
-      style={{
-        maxWidth: "760px",
-        margin: "100px auto 40px",
-        padding: "24px",
-        background: "#ffffff",
-        border: "1px solid #e5e7eb",
-        borderRadius: "16px",
-        boxSizing: "border-box"
-      }}
-    >
-      <h1 style={{ marginBottom: "16px", fontSize: "28px" }}>Planner Test</h1>
+    <div style={{ maxWidth: "760px", margin: "100px auto", padding: "24px" }}>
+      <h1 style={{ fontSize: "28px" }}>Portfolio Planner</h1>
 
-      <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginBottom: "16px" }}>
-        <label
-          htmlFor="portfolio-upload"
-          style={{
-            ...buttonStyle,
-            display: "inline-block",
-            background: "#111827",
-            color: "#ffffff"
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "scale(1.05)";
-            e.target.style.opacity = "0.9";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "scale(1)";
-            e.target.style.opacity = "1";
-          }}
-        >
-          Upload Portfolio Screenshots
-        </label>
-
-        <button
-          onClick={clearImages}
-          style={{
-            ...buttonStyle,
-            background: "#e5e7eb",
-            color: "#111827"
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = "scale(1.05)";
-            e.target.style.opacity = "0.9";
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = "scale(1)";
-            e.target.style.opacity = "1";
-          }}
-        >
-          Clear
-        </button>
-
-        {result && !result.error && (
-          <button
-            onClick={downloadPDF}
-            style={{
-              ...buttonStyle,
-              background: "#111827",
-              color: "#ffffff"
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = "scale(1.05)";
-              e.target.style.opacity = "0.9";
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = "scale(1)";
-              e.target.style.opacity = "1";
-            }}
-          >
-            Download PDF
-          </button>
-        )}
+      <div style={{ ...cardStyle, background: "#fff7ed" }}>
+        <strong>Important:</strong> {DISCLAIMER}
       </div>
 
+      {/* Upload */}
       <input
-        id="portfolio-upload"
         type="file"
         accept="image/*"
         multiple
         onChange={(e) => {
           const files = Array.from(e.target.files || []);
-          if (files.length > 0) {
-            setSelectedFiles(files);
-            setImagePreviews(files.map((file) => URL.createObjectURL(file)));
-            setResult(null);
-          }
+          setSelectedFiles(files);
+          setImagePreviews(files.map((f) => URL.createObjectURL(f)));
+          setResult(null);
         }}
-        style={{ display: "none" }}
       />
 
-      {imagePreviews.length > 0 && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-            gap: "12px",
-            marginBottom: "16px"
-          }}
-        >
-          {imagePreviews.map((src, index) => (
-            <img
-              key={index}
-              src={src}
-              alt={`preview-${index}`}
-              style={{
-                width: "100%",
-                height: "180px",
-                objectFit: "contain",
-                borderRadius: "10px",
-                border: "1px solid #e5e7eb",
-                background: "#fff"
-              }}
-            />
-          ))}
-        </div>
-      )}
-
-      <textarea
-        value={ocrText}
-        onChange={(e) => setOcrText(e.target.value)}
-        rows={8}
-        style={{
-          width: "100%",
-          maxWidth: "100%",
-          display: "block",
-          marginTop: "8px",
-          marginBottom: "16px",
-          padding: "12px",
-          border: "1px solid #d1d5db",
-          borderRadius: "10px",
-          boxSizing: "border-box",
-          resize: "vertical"
-        }}
-        placeholder="OCR text from all uploaded screenshots will appear here..."
-      />
-
-      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
-        {["balanced", "growth", "income"].map((type) => {
-          const active = strategy === type;
-
-          return (
-            <button
-              key={type}
-              onClick={() => setStrategy(type)}
-              style={{
-                padding: "10px 16px",
-                borderRadius: "10px",
-                border: active ? "2px solid #2563eb" : "1px solid #d1d5db",
-                background: active ? "#2563eb" : "#ffffff",
-                color: active ? "#ffffff" : "#111827",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.2s ease"
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.target.style.background = "#f3f4f6";
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.target.style.background = "#ffffff";
-              }}
-            >
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          );
-        })}
+      {/* Strategy */}
+      <div style={{ marginTop: "16px" }}>
+        {["balanced", "growth", "income"].map((type) => (
+          <button
+            key={type}
+            onClick={() => setStrategy(type)}
+            style={{
+              ...buttonStyle,
+              background: strategy === type ? "#111" : "#eee",
+              color: strategy === type ? "#fff" : "#000",
+              marginRight: "8px"
+            }}
+          >
+            {type}
+          </button>
+        ))}
       </div>
 
-      <button
-        onClick={handleAnalyze}
-        disabled={loading || ocrLoading}
-        style={{
-          ...buttonStyle,
-          background: "#2563eb",
-          color: "#ffffff"
-        }}
-        onMouseEnter={(e) => {
-          e.target.style.transform = "scale(1.05)";
-          e.target.style.opacity = "0.9";
-        }}
-        onMouseLeave={(e) => {
-          e.target.style.transform = "scale(1)";
-          e.target.style.opacity = "1";
-        }}
-      >
-        {ocrLoading
-          ? "Reading images..."
-          : loading
-          ? "Analyzing..."
-          : "Analyze"}
+      {/* Analyze */}
+      <button onClick={handleAnalyze} style={{ ...buttonStyle, marginTop: "16px", background: "#111", color: "#fff" }}>
+        {loading ? "Analyzing..." : "Analyze Portfolio"}
       </button>
 
-      {result?.error && (
-        <div style={cardStyle}>
-          <strong>Error:</strong> {result.error}
-        </div>
-      )}
-
+      {/* RESULT */}
       {result && !result.error && (
         <div id="result-section">
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Portfolio</h3>
+            <h3>Portfolio Overview</h3>
             {(result.holdings || []).map((h, i) => (
-              <p key={i} style={{ margin: "6px 0" }}>
+              <p key={i}>
                 {h.ticker} — {h.percent}% (${h.estimatedValue})
               </p>
             ))}
           </div>
 
           <div style={cardStyle}>
-            <h3 style={{ marginTop: 0 }}>Allocation</h3>
-            {Object.entries(result.allocation || {}).map(([key, val], i) => (
-              <p key={i} style={{ margin: "6px 0" }}>
-                {key}: {val}%
+            <h3>Current Allocation</h3>
+            {Object.entries(result.allocation || {}).map(([k, v]) => (
+              <p key={k}>
+                {k}: {v}%
               </p>
             ))}
           </div>
 
-          {result.signals?.length > 0 && (
-            <div style={cardStyle}>
-              <h3 style={{ marginTop: 0 }}>Signals</h3>
-              {result.signals.map((line, i) => (
-                <p key={i} style={{ margin: "6px 0" }}>
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
+          {/* NEW SAFE SECTION */}
+          <div style={cardStyle}>
+            <h3>Rebalance Simulation</h3>
+            {(result.signals || []).map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+            <p style={{ fontSize: "12px", color: "#6b7280" }}>
+              This is a sample adjustment based on your selected strategy.
+            </p>
+          </div>
 
-          {result.uiPlan?.sellLines?.length > 0 && (
-            <div style={cardStyle}>
-              <h3 style={{ marginTop: 0 }}>{result.uiPlan.sellTitle}</h3>
-              {result.uiPlan.sellLines.map((line, i) => (
-                <p key={i} style={{ margin: "6px 0" }}>
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
+          <div style={cardStyle}>
+            <h3>Estimated Adjustments</h3>
 
-          {result.uiPlan?.buyLines?.length > 0 && (
-            <div style={cardStyle}>
-              <h3 style={{ marginTop: 0 }}>{result.uiPlan.buyTitle}</h3>
-              {result.uiPlan.buyLines.map((line, i) => (
-                <p key={i} style={{ margin: "6px 0" }}>
-                  {line}
-                </p>
-              ))}
-            </div>
-          )}
+            {result.uiPlan?.sellLines?.map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+
+            {result.uiPlan?.buyLines?.map((line, i) => (
+              <p key={i}>{line}</p>
+            ))}
+          </div>
+
+          <button onClick={downloadPDF} style={{ ...buttonStyle, marginTop: "16px", background: "#111", color: "#fff" }}>
+            Download Report
+          </button>
         </div>
       )}
     </div>
