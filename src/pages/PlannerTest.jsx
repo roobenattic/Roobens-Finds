@@ -4,7 +4,7 @@ export default function PlannerTest() {
   const fileInputRef = useRef(null);
 
   const [ocrText, setOcrText] = useState("");
-  const [strategy, setStrategy] = useState("balanced");
+  const [strategy, setStrategy] = useState(null);
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ocrLoading, setOcrLoading] = useState(false);
@@ -31,7 +31,7 @@ export default function PlannerTest() {
   };
 
   const selectedStrategyDescription = useMemo(
-    () => strategyMeta[strategy]?.description || "",
+    () => (strategy ? strategyMeta[strategy]?.description || "" : "Choose a strategy to unlock your portfolio simulation."),
     [strategy]
   );
 
@@ -66,6 +66,11 @@ export default function PlannerTest() {
   }
 
   async function handleAnalyze() {
+    if (!strategy) {
+      setErrorMessage("Select a strategy to continue.");
+      return;
+    }
+
     let textToAnalyze = ocrText;
 
     if (selectedFiles.length > 0 && !ocrText.trim()) {
@@ -210,6 +215,13 @@ export default function PlannerTest() {
       color: "#6e6e73",
       lineHeight: 1.5,
       margin: 0
+    },
+    warningText: {
+      fontSize: "14px",
+      color: "#ff3b30",
+      lineHeight: 1.5,
+      marginTop: "10px",
+      fontWeight: 600
     },
     uploadWrap: {
       display: "flex",
@@ -398,20 +410,20 @@ export default function PlannerTest() {
     },
     premiumNote: {
       marginTop: "18px",
-      padding: "16px 18px",
+      padding: "18px",
       borderRadius: "18px",
       background: "linear-gradient(180deg, #111111 0%, #1d1d1f 100%)",
       color: "#ffffff"
     },
     premiumTitle: {
-      margin: "0 0 6px",
+      margin: "0 0 8px",
       fontSize: "16px",
       fontWeight: 700
     },
     premiumText: {
       margin: 0,
       fontSize: "14px",
-      lineHeight: 1.55,
+      lineHeight: 1.6,
       color: "rgba(255,255,255,0.82)"
     }
   };
@@ -584,7 +596,10 @@ export default function PlannerTest() {
                   <button
                     key={type}
                     type="button"
-                    onClick={() => setStrategy(type)}
+                    onClick={() => {
+                      setStrategy(type);
+                      setErrorMessage("");
+                    }}
                     style={{
                       ...styles.strategyButton,
                       ...(active ? styles.strategyButtonActive : {})
@@ -608,24 +623,28 @@ export default function PlannerTest() {
               })}
             </div>
 
+            {!strategy && (
+              <p style={styles.warningText}>Select a strategy to continue.</p>
+            )}
+
             <button
               type="button"
               onClick={handleAnalyze}
-              disabled={loading || ocrLoading}
+              disabled={loading || ocrLoading || !strategy}
               style={{
                 ...styles.primaryButton,
-                opacity: loading || ocrLoading ? 0.72 : 1,
-                cursor: loading || ocrLoading ? "not-allowed" : "pointer"
+                opacity: loading || ocrLoading || !strategy ? 0.55 : 1,
+                cursor: loading || ocrLoading || !strategy ? "not-allowed" : "pointer"
               }}
               onMouseEnter={(e) => {
-                if (!(loading || ocrLoading)) {
+                if (!(loading || ocrLoading || !strategy)) {
                   e.currentTarget.style.transform = "translateY(-1px) scale(1.01)";
                   e.currentTarget.style.boxShadow = "0 18px 36px rgba(0,0,0,0.2)";
                   e.currentTarget.style.background = "#1c1c1e";
                 }
               }}
               onMouseLeave={(e) => {
-                if (!(loading || ocrLoading)) {
+                if (!(loading || ocrLoading || !strategy)) {
                   e.currentTarget.style.transform = "translateY(0) scale(1)";
                   e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.16)";
                   e.currentTarget.style.background = "#111111";
@@ -693,9 +712,12 @@ export default function PlannerTest() {
               </div>
 
               <div style={styles.premiumNote}>
-                <p style={styles.premiumTitle}>Want the downloadable report?</p>
+                <p style={styles.premiumTitle}>
+                  Want the complete portfolio upgrade?
+                </p>
                 <p style={styles.premiumText}>
-                  The free planner is designed for on-screen review only. Premium unlocks the polished downloadable report.
+                  Unlock the full premium planner experience with a cleaner report,
+                  a more polished portfolio breakdown, and a structured simulation you can keep and review anytime.
                 </p>
               </div>
             </div>
