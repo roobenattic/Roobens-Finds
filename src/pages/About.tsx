@@ -3,7 +3,7 @@
  * Brand story, mission, personal tone, why I created Portfolio Planner
  */
 import { Link } from "wouter";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { ArrowRight, Heart, Target, Lightbulb } from "lucide-react";
 
 const ABOUT_BG = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/about-bg-JaGk3h9zWUkpLrW9zp8KUQ.webp";

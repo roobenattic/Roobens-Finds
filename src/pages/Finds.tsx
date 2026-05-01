@@ -15,9 +15,9 @@ import {
   CheckCircle2,
   ChevronDown,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { Link } from "wouter";
-import { FREE_DOWNLOAD_URL, isConfigured } from "@/config";
+import { FREE_DOWNLOAD_URL, isConfigured } from "../config";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },

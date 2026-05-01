@@ -1,4 +1,6 @@
+// @ts-ignore: missing declaration file for JS module
 import PlannerTest from "./pages/PlannerTest";
+// @ts-ignore: missing declaration file for JS module
 import ChatWidget from "./components/ChatWidget";
 import PracticalDeskSetup from "./pages/PracticalDeskSetup";
 import LogitechMXKeys from "./pages/LogitechMXKeys";
@@ -23,7 +25,7 @@ import Disclaimer from "./pages/Disclaimer";
 import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import ThankYou from "./pages/ThankYou";
-
+import SmartMoneyOS from "./pages/SmartMoneyOS";
 // Scroll to top on route change
 function ScrollToTop() {
   const [location] = useLocation();
@@ -43,6 +45,7 @@ function Router() {
       <Switch>
         <Route path="/planner-test" component={PlannerTest} />
         <Route path="/portfolio-planner" component={PlannerTest} />
+        <Route path="/smart-money-os" component={SmartMoneyOS} />
         <Route path="/" component={Home} />
         <Route path="/product" component={Product} />
         <Route path="/about" component={About} />
