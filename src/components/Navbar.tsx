@@ -16,6 +16,7 @@ const LOGO_DARK =
 
 const navLinks = [
   { label: "Home", href: "/" },
+  { label: "Mondial 2026", href: "/mondial-2026" },
   { label: "Tools", href: "/tools" },
   { label: "Planner", href: "/portfolio-planner" },
   { label: "Finds", href: "/finds" },

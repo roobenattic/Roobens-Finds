@@ -26,6 +26,7 @@ import NotFound from "./pages/NotFound";
 import { useEffect } from "react";
 import ThankYou from "./pages/ThankYou";
 import SmartMoneyOS from "./pages/SmartMoneyOS";
+import Mondial2026 from "./pages/Mondial2026";
 // Scroll to top on route change
 function ScrollToTop() {
   const [location] = useLocation();
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/planner-test" component={PlannerTest} />
         <Route path="/portfolio-planner" component={PlannerTest} />
         <Route path="/smart-money-os" component={SmartMoneyOS} />
+        <Route path="/mondial-2026" component={Mondial2026} />
         <Route path="/" component={Home} />
         <Route path="/product" component={Product} />
         <Route path="/about" component={About} />
