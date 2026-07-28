@@ -208,10 +208,10 @@ export default function About() {
               </p>
               <p>
                 The Portfolio Planner was created to solve that problem. It is
-                not a complicated software tool. It is a clean, organized
-                digital planner that gives you a clear picture of your
-                investments — in a format that is easy to update and easy to
-                understand.
+                a guided diagnosis that lets you upload and verify holdings,
+                understand your allocation, and leave with one clear next step.
+                The Premium Workspace is being upgraded into a private living
+                web app for scenarios, exact actions, and progress over time.
               </p>
               <p>
                 I built it for people like me — busy, curious, and serious about
@@ -222,7 +222,7 @@ export default function About() {
             </div>
             <div className="mt-10">
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Link href="/product">
+                <Link href="/portfolio-planner">
                   <Button
                     size="lg"
                     className="bg-[#F16953] hover:bg-[#a0822e] text-white font-semibold px-10"

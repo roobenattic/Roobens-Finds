@@ -11,7 +11,8 @@ const LOGO_WHITE = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACu
 const SHOP_URL = "https://shop.roobensfinds.com";
 
 const toolLinks = [
-  { label: "Portfolio Planner", href: "/product" },
+  { label: "Free Portfolio Diagnosis", href: "/portfolio-planner" },
+  { label: "Premium Preview", href: "/premium-preview" },
   { label: "View All Tools", href: "/tools" },
 ];
 

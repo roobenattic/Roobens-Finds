@@ -1,397 +1,135 @@
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "wouter";
+import { MessageCircle, Send, X } from "lucide-react";
+import { ENABLE_PAID_AI_CHAT } from "@/config";
+
+const plannerActions = [
+  "What does my score mean?",
+  "What files can I upload?",
+  "What is included in Premium?",
+];
+
+const generalActions = ["What does Roobens Finds offer?", "How do I get started?"];
+
+function localReply(message, path) {
+  const question = message.toLowerCase();
+  if (/score|health/.test(question)) {
+    return "The health score is an educational 100-point check. Diversification, single-position concentration, liquidity, and alignment with your selected reference strategy each contribute 25 points. Open “How this score works” in your diagnosis for the breakdown.";
+  }
+  if (/file|upload|pdf|csv|screenshot|txt/.test(question)) {
+    return "The free diagnosis accepts PNG, JPG/JPEG, WEBP, PDF, CSV, and TXT. You can use up to 5 files at 10 MB each. Scanned PDFs use limited in-browser OCR.";
+  }
+  if (/premium|upgrade|workspace/.test(question)) {
+    return "Premium is being upgraded into a private living web app with saved portfolios, live scenarios, exact action plans, progress history, and unlimited updated PDFs. The public Premium page is a preview, not a promise of immediate access.";
+  }
+  if (/privacy|broker|password|safe/.test(question)) {
+    return "You do not need to provide brokerage credentials. Core file processing and calculations run in the browser, and the free diagnosis does not depend on a paid AI API.";
+  }
+  if (/start|begin/.test(question)) {
+    return path === "/portfolio-planner"
+      ? "Choose screenshots or a portfolio file, review every detected holding, confirm the total, then set your plan and analyze."
+      : "Start with the Free Portfolio Diagnosis from the Planner link, or browse the Tools and Finds sections.";
+  }
+  if (/offer|roobens/.test(question)) {
+    return "Roobens Finds offers the Free Portfolio Diagnosis, a preview of the upcoming Premium Portfolio Workspace, practical finance tools, and curated everyday finds.";
+  }
+  return "I don’t have a reliable local answer for that yet. Please use the Contact page and Roobens Finds can help directly.";
+}
 
 export default function ChatWidget() {
+  const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [hasOpenedOnce, setHasOpenedOnce] = useState(false);
   const [messages, setMessages] = useState([
-    { sender: "Bot", text: "Hi — how can I help today?" },
+    { sender: "Bot", text: "Hi — I can explain the planner, uploads, score, privacy, and Premium preview." },
   ]);
   const [input, setInput] = useState("");
-  const messagesEndRef = useRef(null);
+  const endRef = useRef(null);
+  const quickActions = location === "/portfolio-planner" ? plannerActions : generalActions;
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isSending]);
 
-  const sendMessage = async (customMessage) => {
-    const message = (customMessage ?? input).trim();
+  async function sendMessage(customMessage) {
+    const message = String(customMessage ?? input).trim();
     if (!message || isSending) return;
-
-    const nextMessages = [...messages, { sender: "You", text: message }];
-    setMessages(nextMessages);
+    setMessages((current) => [...current, { sender: "You", text: message }]);
     setInput("");
-    setIsSending(true);
 
+    if (!ENABLE_PAID_AI_CHAT) {
+      setMessages((current) => [...current, { sender: "Bot", text: localReply(message, location) }]);
+      return;
+    }
+
+    setIsSending(true);
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-       body: JSON.stringify({
-  message,
-  history: nextMessages.slice(-10),
-  currentPage: window.location.pathname,
-}), 
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message, history: messages.slice(-8), currentPage: location }),
       });
-
       const data = await response.json();
-
-    setMessages((prev) => [
-  ...prev,
-  {
-    sender: "Bot",
-    text:
-      data.reply ||
-      `${data.error || "Request failed"}${
-        data.details ? `: ${data.details}` : ""
-      }`,
-  },
-]); 
+      setMessages((current) => [...current, { sender: "Bot", text: data.reply || "Chat is unavailable right now." }]);
     } catch {
-      setMessages((prev) => [
-        ...prev,
-        { sender: "Bot", text: "Chat is unavailable right now." },
-      ]);
+      setMessages((current) => [...current, { sender: "Bot", text: "Chat is unavailable right now. Please use Contact." }]);
     } finally {
       setIsSending(false);
     }
-  };
-
-  const toggleChat = () => {
-    setIsOpen((prev) => !prev);
-    if (!hasOpenedOnce) setHasOpenedOnce(true);
-  };
+  }
 
   return (
     <>
-      {isOpen && (
-        <div style={panelStyle}>
-          <div style={headerStyle}>
+      {isOpen ? (
+        <section className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom))] right-3 z-[9999] flex h-[min(34rem,calc(100vh-8rem))] w-[min(22.5rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-2xl backdrop-blur motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2" aria-label="Roobens Finds assistant">
+          <header className="flex items-center justify-between border-b bg-[#081423] px-5 py-4 text-white">
             <div>
-              <div style={titleStyle}>Roobens Finds Assistant</div>
-              <div style={subtitleStyle}>Ask a question or take the next step</div>
+              <h2 className="font-semibold">Roobens Finds Assistant</h2>
+              <p className="mt-0.5 text-xs text-slate-300">Local answers for common questions</p>
             </div>
-
-            <button
-              onClick={() => setIsOpen(false)}
-              style={iconBtnStyle}
-              aria-label="Close chat"
-            >
-              ×
+            <button type="button" onClick={() => setIsOpen(false)} className="rounded-full p-2 hover:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#FECFA5]" aria-label="Close assistant">
+              <X className="h-4 w-4" />
             </button>
+          </header>
+
+          <div className="flex flex-wrap gap-2 border-b p-3">
+            {quickActions.map((action) => (
+              <button key={action} type="button" onClick={() => sendMessage(action)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-left text-xs text-slate-700 hover:border-[#F16953] focus-visible:ring-2 focus-visible:ring-[#F16953]">
+                {action}
+              </button>
+            ))}
           </div>
 
-          <div style={quickActionsWrap}>
-            <button
-              onClick={() => sendMessage("What do you offer?")}
-              style={quickBtn}
-            >
-              What do you offer?
-            </button>
-
-            <button
-              onClick={() => sendMessage("How do I get started?")}
-              style={quickBtn}
-            >
-              Get started
-            </button>
-
-            <a
-              href="/contact"
-              style={{ ...quickBtn, textDecoration: "none", textAlign: "center" }}
-            >
-              Contact
-            </a>
-          </div>
-
-          <div style={messagesAreaStyle}>
-            {messages.map((msg, index) => {
-              const isBot = msg.sender === "Bot";
-
-              return (
-                <div
-                  key={index}
-                  style={{
-                    display: "flex",
-                    justifyContent: isBot ? "flex-start" : "flex-end",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <div
-                    style={{
-                      ...bubbleBaseStyle,
-                      ...(isBot ? botBubbleStyle : userBubbleStyle),
-                    }}
-                  >
-                    {msg.text}
-                  </div>
-                </div>
-              );
-            })}
-
-            {isSending && (
-              <div style={{ display: "flex", justifyContent: "flex-start", marginBottom: "10px" }}>
-                <div style={{ ...bubbleBaseStyle, ...botBubbleStyle, padding: "12px 14px" }}>
-                  <div style={typingWrap}>
-                    <span style={{ ...dotStyle, animationDelay: "0ms" }} />
-                    <span style={{ ...dotStyle, animationDelay: "180ms" }} />
-                    <span style={{ ...dotStyle, animationDelay: "360ms" }} />
-                  </div>
-                </div>
+          <div className="flex-1 overflow-y-auto bg-slate-50 p-4" aria-live="polite">
+            {messages.map((message, index) => (
+              <div key={`${message.sender}-${index}`} className={`mb-3 flex ${message.sender === "Bot" ? "justify-start" : "justify-end"}`}>
+                <p className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-6 ${message.sender === "Bot" ? "bg-white text-slate-700 shadow-sm" : "bg-[#24364c] text-white"}`}>{message.text}</p>
               </div>
-            )}
-
-            <div ref={messagesEndRef} />
+            ))}
+            {isSending ? <p className="text-xs text-slate-500">Thinking…</p> : null}
+            <div ref={endRef} />
           </div>
 
-          <div style={inputWrapStyle}>
-            <input
-              type="text"
-              value={input}
-              placeholder="Type your question..."
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") sendMessage();
-              }}
-              style={inputStyle}
-            />
-
-            <button
-              onClick={() => sendMessage()}
-              style={sendBtnStyle}
-              disabled={isSending}
-            >
-              {isSending ? "..." : "Send"}
+          <form onSubmit={(event) => { event.preventDefault(); sendMessage(); }} className="flex gap-2 border-t bg-white p-3">
+            <label htmlFor="assistant-question" className="sr-only">Ask a question</label>
+            <input id="assistant-question" value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask a question…" className="min-w-0 flex-1 rounded-xl border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
+            <button type="submit" disabled={isSending || !input.trim()} className="grid h-10 w-10 place-items-center rounded-xl bg-[#F16953] text-white focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50" aria-label="Send message">
+              <Send className="h-4 w-4" />
             </button>
-          </div>
-        </div>
-      )}
+          </form>
+          <Link href="/contact" className="border-t bg-white py-2 text-center text-xs font-semibold text-[#495E79] hover:text-[#F16953]">Contact Roobens Finds</Link>
+        </section>
+      ) : null}
 
       <button
-        onClick={toggleChat}
-        style={{
-          ...launcherStyle,
-          animation: !hasOpenedOnce ? "launcherPulse 1.8s infinite" : "none",
-        }}
-        aria-label="Open chat"
+        type="button"
+        onClick={() => setIsOpen((open) => !open)}
+        className={`fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-[10000] grid h-12 w-12 place-items-center rounded-full bg-[#24364c] text-white shadow-lg transition duration-200 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#F16953] focus-visible:ring-offset-2 hover:opacity-100 ${isOpen ? "opacity-100" : "opacity-[.22] grayscale hover:grayscale-0"}`}
+        aria-label={isOpen ? "Close assistant" : "Open assistant"}
+        aria-expanded={isOpen}
       >
-        <span style={{ transform: isOpen ? "scale(0.9)" : "scale(1)", transition: "0.2s ease" }}>
-          💬
-        </span>
+        {isOpen ? <X className="h-5 w-5" /> : <MessageCircle className="h-5 w-5" />}
       </button>
-
-      <style>{`
-        @keyframes chatFadeUp {
-          from {
-            opacity: 0;
-            transform: translateY(18px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes typingBounce {
-          0%, 80%, 100% {
-            transform: translateY(0);
-            opacity: 0.45;
-          }
-          40% {
-            transform: translateY(-4px);
-            opacity: 1;
-          }
-        }
-
-        @keyframes launcherPulse {
-          0% {
-            transform: scale(1);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.22), 0 0 0 0 rgba(17,24,39,0.35);
-          }
-          70% {
-            transform: scale(1.05);
-            box-shadow: 0 14px 34px rgba(0,0,0,0.24), 0 0 0 16px rgba(17,24,39,0);
-          }
-          100% {
-            transform: scale(1);
-            box-shadow: 0 12px 30px rgba(0,0,0,0.22), 0 0 0 0 rgba(17,24,39,0);
-          }
-        }
-      `}</style>
     </>
   );
 }
-
-const panelStyle = {
-  position: "fixed",
-  bottom: "92px",
-  right: "20px",
-  width: "360px",
-  maxWidth: "calc(100vw - 24px)",
-  height: "560px",
-  maxHeight: "calc(100vh - 120px)",
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(18px)",
-  WebkitBackdropFilter: "blur(18px)",
-  border: "1px solid rgba(0,0,0,0.08)",
-  borderRadius: "28px",
-  boxShadow: "0 20px 60px rgba(0,0,0,0.16)",
-  zIndex: 9999,
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-  animation: "chatFadeUp 0.28s ease-out",
-};
-
-const headerStyle = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  padding: "18px 18px 12px 18px",
-  borderBottom: "1px solid rgba(0,0,0,0.06)",
-  background: "rgba(255,255,255,0.72)",
-};
-
-const titleStyle = {
-  fontSize: "16px",
-  fontWeight: 700,
-  color: "#111827",
-  letterSpacing: "-0.02em",
-};
-
-const subtitleStyle = {
-  fontSize: "12px",
-  color: "#6b7280",
-  marginTop: "2px",
-};
-
-const iconBtnStyle = {
-  border: "1px solid rgba(0,0,0,0.08)",
-  background: "rgba(255,255,255,0.85)",
-  width: "32px",
-  height: "32px",
-  borderRadius: "999px",
-  cursor: "pointer",
-  fontSize: "18px",
-  color: "#111827",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const quickActionsWrap = {
-  display: "flex",
-  gap: "8px",
-  flexWrap: "wrap",
-  padding: "12px 16px 4px 16px",
-};
-
-const quickBtn = {
-  border: "1px solid rgba(0,0,0,0.08)",
-  background: "rgba(255,255,255,0.9)",
-  borderRadius: "999px",
-  padding: "8px 12px",
-  fontSize: "12px",
-  cursor: "pointer",
-  color: "#111827",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
-};
-
-const messagesAreaStyle = {
-  flex: 1,
-  overflowY: "auto",
-  padding: "14px 16px 10px 16px",
-  background:
-    "linear-gradient(to bottom, rgba(249,250,251,0.55), rgba(255,255,255,0.82))",
-};
-
-const bubbleBaseStyle = {
-  maxWidth: "82%",
-  padding: "11px 14px",
-  borderRadius: "18px",
-  fontSize: "14px",
-  lineHeight: 1.45,
-  wordBreak: "break-word",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-};
-
-const botBubbleStyle = {
-  background: "#f3f4f6",
-  color: "#111827",
-  borderTopLeftRadius: "8px",
-};
-
-const userBubbleStyle = {
-  background: "#111827",
-  color: "#ffffff",
-  borderTopRightRadius: "8px",
-};
-
-const typingWrap = {
-  display: "flex",
-  gap: "5px",
-  alignItems: "center",
-};
-
-const dotStyle = {
-  width: "7px",
-  height: "7px",
-  borderRadius: "999px",
-  background: "#6b7280",
-  display: "inline-block",
-  animation: "typingBounce 1s infinite ease-in-out",
-};
-
-const inputWrapStyle = {
-  padding: "14px 16px 16px 16px",
-  borderTop: "1px solid rgba(0,0,0,0.06)",
-  background: "rgba(255,255,255,0.82)",
-  display: "flex",
-  gap: "10px",
-  alignItems: "center",
-};
-
-const inputStyle = {
-  flex: 1,
-  padding: "13px 14px",
-  border: "1px solid rgba(0,0,0,0.08)",
-  borderRadius: "16px",
-  outline: "none",
-  fontSize: "14px",
-  background: "#ffffff",
-  color: "#111827",
-  boxSizing: "border-box",
-};
-
-const sendBtnStyle = {
-  border: "none",
-  borderRadius: "16px",
-  padding: "13px 16px",
-  cursor: "pointer",
-  background: "#111827",
-  color: "#ffffff",
-  fontSize: "14px",
-  fontWeight: 600,
-  minWidth: "68px",
-};
-
-const launcherStyle = {
-  position: "fixed",
-  bottom: "20px",
-  right: "20px",
-  width: "62px",
-  height: "62px",
-  borderRadius: "999px",
-  border: "1px solid rgba(255,255,255,0.25)",
-  background: "linear-gradient(180deg, #1f2937 0%, #111827 100%)",
-  color: "#ffffff",
-  fontSize: "24px",
-  cursor: "pointer",
-  boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
-  zIndex: 10000,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};

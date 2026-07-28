@@ -8,7 +8,7 @@ const features = [
   {
     title: "Portfolio Planner",
     description:
-      "Review portfolio inputs, growth projections, and planning scenarios.",
+      "Upload and verify holdings, then receive a free portfolio diagnosis.",
     icon: "📈",
     href: "/portfolio-planner",
     status: "Open Planner",

@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Mail, Twitter, Instagram, Youtube, Send, MessageCircle } from "lucide-react";
-import { SOCIAL, CONTACT_FORM_ENDPOINT, NEWSLETTER_ENDPOINT, BRAND } from "@/config";
+import { SOCIAL, CONTACT_FORM_ENDPOINT, NEWSLETTER_ENDPOINT } from "@/config";
 
 export default function Contact() {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
