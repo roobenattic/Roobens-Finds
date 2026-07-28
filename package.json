@@ -3,6 +3,11 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Roobens Finds — Portfolio Planner website",
+  "browserslist": [
+    "Safari >= 14",
+    "iOS >= 14",
+    "last 2 Chrome versions"
+  ],
   "scripts": {
     "dev": "vite",
     "lint": "tsc --noEmit",

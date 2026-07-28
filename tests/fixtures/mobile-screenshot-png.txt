@@ -1,0 +1,10 @@
+BROKERAGE ACCOUNT
+POSITIONS
+Apple Inc AAPL
+10 shares $1,234.56
+Today +$8.40
+Vanguard Total Stock Market ETF
+VTI
+$4,250.50
+62.4%
+TOTAL VALUE $5,485.06

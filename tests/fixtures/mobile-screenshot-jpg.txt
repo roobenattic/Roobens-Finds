@@ -1,0 +1,9 @@
+ACCOUNT VALUE
+Microsoft Corp
+MSFT
+10 shares
+Current price $415.20
+Gain/Loss +$180.00
+Government Money Market
+SPAXX
+615.25

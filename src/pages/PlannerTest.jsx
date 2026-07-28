@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
@@ -32,8 +32,11 @@ import LocalDataControls from "@/components/planner/LocalDataControls";
 import {
   ACCEPTED_TYPES,
   FILE_LIMITS,
+  formatPortfolioImportError,
   mergeHoldings,
+  normalizePortfolioImportError,
   parsePortfolioFile,
+  terminatePortfolioOcr,
 } from "@/lib/portfolioFiles";
 import { generatePortfolioDiagnosisPdf } from "@/lib/generatePortfolioDiagnosisPdf";
 // @ts-ignore Shared browser/server calculation module.
@@ -198,7 +201,7 @@ function HoldingsTable({ holdings, onChange, onRemove, onAdd }) {
           </tbody>
         </table>
       </div>
-      <Button type="button" variant="outline" onClick={onAdd} className="mt-4"><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
+      <Button id="add-holding-button" type="button" variant="outline" onClick={onAdd} className="mt-4"><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
     </div>
   );
 }
@@ -326,6 +329,7 @@ export default function PlannerTest() {
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState("");
+  const [importAttempt, setImportAttempt] = useState(null);
   const [totalValue, setTotalValue] = useState("");
   const [reviewed, setReviewed] = useState(false);
   const [analysisStarted, setAnalysisStarted] = useState(false);
@@ -335,6 +339,10 @@ export default function PlannerTest() {
   const [timelineYears, setTimelineYears] = useState(10);
   const [monthlyContribution, setMonthlyContribution] = useState(500);
   const [rebalanceMode, setRebalanceMode] = useState("contribution-only");
+
+  useEffect(() => () => {
+    void terminatePortfolioOcr();
+  }, []);
 
   const validHoldings = holdings.filter(
     (holding) => (holding.ticker || holding.name) && (Number(holding.marketValue) > 0 || Number(holding.percent) > 0),
@@ -376,8 +384,8 @@ export default function PlannerTest() {
     setError("");
   }
 
-  async function processSelectedFiles(selected) {
-    const unique = selected.filter((candidate) => !files.some((file) =>
+  async function processSelectedFiles(selected, retry = false) {
+    const unique = retry ? selected : selected.filter((candidate) => !files.some((file) =>
       file.name === candidate.name && file.size === candidate.size && file.lastModified === candidate.lastModified,
     ));
     if (files.length + unique.length > FILE_LIMITS.maxFiles) {
@@ -390,19 +398,33 @@ export default function PlannerTest() {
     setError("");
     setWarnings([]);
     setBrokerMessages([]);
+    setImportAttempt({
+      files: unique,
+      names: unique.map((file) => file.name),
+      types: unique.map((file) => file.name.split(".").pop()?.toUpperCase() || file.type || "Unknown"),
+      status: "processing",
+      code: "",
+    });
     const nextHoldings = [...holdings];
     const nextWarnings = [];
     const nextBrokerMessages = [];
     const parsedSources = [];
+    let requiresReview = false;
     try {
       for (let index = 0; index < unique.length; index += 1) {
         const file = unique[index];
         setProcessingLabel(`Reading ${file.name} (${index + 1} of ${unique.length})…`);
-        const parsed = await parsePortfolioFile(file);
+        const parsed = await parsePortfolioFile(file, {
+          onProgress: ({ status, progress }) => {
+            const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
+            setProcessingLabel(`${status || "Reading screenshot"} ${percent}% — ${file.name}`);
+          },
+        });
         nextHoldings.push(...parsed.holdings);
         nextWarnings.push(...parsed.warnings);
         nextBrokerMessages.push(parsed.brokerMessage);
         parsedSources.push(parsed.source);
+        requiresReview = requiresReview || parsed.requiresReview;
       }
       const merged = mergeHoldings(nextHoldings);
       setFiles((current) => [...current, ...unique]);
@@ -427,10 +449,24 @@ export default function PlannerTest() {
       const detectedTotal = merged.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
       if (detectedTotal > 0 && !Number(totalValue)) setTotalValue(detectedTotal.toFixed(2));
       if (!merged.length) setError("No holdings were detected. Add a row manually or try a clearer export.");
+      setImportAttempt((current) => ({
+        ...current,
+        status: requiresReview ? "partial" : "complete",
+      }));
       markDataChanged();
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "The selected file could not be processed.");
+      const normalized = normalizePortfolioImportError(caught);
+      setError(formatPortfolioImportError(caught));
+      setImportAttempt((current) => ({
+        ...current,
+        status: "failed",
+        code: normalized.code,
+      }));
+      if (normalized.code === "NO-POSITIONS-01") {
+        requestAnimationFrame(() => document.getElementById("review-heading")?.scrollIntoView({ behavior: "smooth" }));
+      }
     } finally {
+      await terminatePortfolioOcr();
       setProcessing(false);
       setProcessingLabel("");
       const screenshotInput = document.getElementById("portfolio-screenshots");
@@ -514,6 +550,17 @@ export default function PlannerTest() {
           </div>
           <p className="mt-4 break-all text-xs text-[#5F7C84]">Limits: {FILE_LIMITS.maxFiles} files, 10 MB each, first {FILE_LIMITS.maxPdfPages} PDF pages. Accepted types: {ACCEPTED_TYPES}.</p>
           {processing ? <div className="mt-5 rounded-2xl bg-[#eef2f3] p-4 text-sm font-semibold" role="status">{processingLabel}</div> : null}
+          {importAttempt ? (
+            <div className="mt-4 rounded-xl border border-[#495E79]/10 bg-slate-50 px-4 py-3 text-sm text-[#495E79]" aria-live="polite">
+              <p className="font-semibold">
+                {importAttempt.names.join(", ")} <span className="font-normal">({importAttempt.types.join(", ")})</span>
+              </p>
+              <p className="mt-1 text-xs capitalize">
+                Status: {importAttempt.status === "partial" ? "Partial import — review required" : importAttempt.status}
+                {importAttempt.code ? ` · ${importAttempt.code}` : ""}
+              </p>
+            </div>
+          ) : null}
           {files.length ? (
             <div className="mt-5 flex flex-wrap gap-2">
               {files.map((file) => <span key={`${file.name}-${file.lastModified}`} className="rounded-full bg-[#73a7a5]/10 px-3 py-1.5 text-xs font-medium text-[#496f70]">{file.name}</span>)}
@@ -534,7 +581,24 @@ export default function PlannerTest() {
               <span><strong>{warning.message}</strong>{warning.action ? ` ${warning.action}` : ""}</span>
             </p>
           ))}
-          {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
+          {error ? (
+            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
+              <p className="text-sm font-semibold">{error}</p>
+              <div className="mt-3 flex flex-wrap gap-2 pr-14 sm:pr-0">
+                {importAttempt?.files?.length ? (
+                  <Button type="button" variant="outline" size="sm" onClick={() => processSelectedFiles(importAttempt.files, true)} disabled={processing}>
+                    Retry import
+                  </Button>
+                ) : null}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  document.getElementById("review-heading")?.scrollIntoView({ behavior: "smooth" });
+                  requestAnimationFrame(() => document.getElementById("add-holding-button")?.focus());
+                }}>
+                  Add holding manually
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </section>
 
         <section className="mt-8 rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="review-heading">
