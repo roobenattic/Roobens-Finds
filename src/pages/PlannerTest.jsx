@@ -4,10 +4,12 @@ import {
   AlertTriangle,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   FileSpreadsheet,
   FileText,
   Image as ImageIcon,
   Plus,
+  RefreshCw,
   ShieldCheck,
   Trash2,
 } from "lucide-react";
@@ -32,7 +34,6 @@ import LocalDataControls from "@/components/planner/LocalDataControls";
 import {
   ACCEPTED_TYPES,
   FILE_LIMITS,
-  formatPortfolioImportError,
   mergeHoldings,
   normalizePortfolioImportError,
   parsePortfolioFile,
@@ -41,6 +42,15 @@ import {
 import { generatePortfolioDiagnosisPdf } from "@/lib/generatePortfolioDiagnosisPdf";
 // @ts-ignore Shared browser/server calculation module.
 import { analyzeSnapshot, buildScenario, buildSnapshot } from "../../lib/portfolioAnalysis.js";
+// @ts-ignore Shared deterministic review experience helpers.
+import {
+  allocationForHolding,
+  buildPortfolioReadiness,
+  getImportErrorGuidance,
+  getPlanGuidance,
+  holdingReviewState,
+  uploadKey,
+} from "../../lib/portfolioReview.js";
 
 const CATEGORIES = ["Growth", "Income", "Real Estate", "Bonds", "Cash", "Other", "Needs review"];
 const COLORS = ["#F16953", "#73a7a5", "#FECFA5", "#58708f", "#9bd1cd", "#a78b7b"];
@@ -79,7 +89,7 @@ function UploadChoice({ id, title, description, accept, icon: Icon, multiple, on
   return (
     <label
       htmlFor={id}
-      className={`group flex min-h-48 cursor-pointer flex-col justify-between rounded-3xl border-2 border-dashed border-[#73a7a5]/45 bg-white p-6 transition focus-within:ring-2 focus-within:ring-[#F16953] hover:-translate-y-1 hover:border-[#F16953] hover:shadow-lg ${disabled ? "pointer-events-none opacity-50" : ""}`}
+      className={`group flex min-h-36 cursor-pointer flex-col justify-between rounded-3xl border-2 border-dashed border-[#73a7a5]/45 bg-white p-5 transition focus-within:ring-2 focus-within:ring-[#F16953] hover:-translate-y-1 hover:border-[#F16953] hover:shadow-lg ${disabled ? "pointer-events-none opacity-50" : ""}`}
     >
       <div>
         <span className="inline-grid h-11 w-11 place-items-center rounded-2xl bg-[#73a7a5]/10 text-[#496f70]">
@@ -88,7 +98,7 @@ function UploadChoice({ id, title, description, accept, icon: Icon, multiple, on
         <h3 className="mt-4 text-lg font-bold text-[#24364c]">{title}</h3>
         <p className="mt-2 text-sm leading-6 text-[#5F7C84]">{description}</p>
       </div>
-      <span className="mt-5 inline-flex items-center text-sm font-semibold text-[#F16953]">
+      <span className="mt-3 inline-flex items-center text-sm font-semibold text-[#F16953]">
         Choose {multiple ? "images" : "a file"} <ArrowRight className="ml-1 h-4 w-4" />
       </span>
       <input id={id} type="file" className="sr-only" accept={accept} multiple={multiple} onChange={onChange} disabled={disabled} />
@@ -96,110 +106,132 @@ function UploadChoice({ id, title, description, accept, icon: Icon, multiple, on
   );
 }
 
-function HoldingsTable({ holdings, onChange, onRemove, onAdd }) {
+function ConfidenceBadge({ confidence }) {
+  const tone = confidence === "high"
+    ? "bg-emerald-100 text-emerald-800"
+    : confidence === "medium"
+      ? "bg-blue-100 text-blue-800"
+      : "bg-amber-100 text-amber-900";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-semibold capitalize ${tone}`}>
+      {confidence === "low" ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+      {confidence}
+    </span>
+  );
+}
+
+function StatusBadge({ state }) {
+  const tone = state.tone === "success"
+    ? "bg-emerald-50 text-emerald-800"
+    : state.tone === "warning"
+      ? "bg-amber-50 text-amber-900"
+      : "bg-red-50 text-red-800";
+  return <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${tone}`}>{state.status}</span>;
+}
+
+function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove, onAdd }) {
+  const [expandedRows, setExpandedRows] = useState(() => new Set());
+
+  useEffect(() => {
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      let changed = false;
+      for (const holding of holdings) {
+        if (holdingReviewState(holding).needsEditing && !next.has(holding.id)) {
+          next.add(holding.id);
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [holdings]);
+
+  function toggleRow(id) {
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   return (
     <div>
-      <div className="grid gap-4 xl:hidden">
-        {holdings.map((holding, index) => {
-          const incomplete = !(holding.ticker || holding.name) || !(Number(holding.marketValue) > 0 || Number(holding.percent) > 0);
+      <div className="overflow-hidden rounded-2xl border border-[#495E79]/10 bg-white">
+        {holdings.length ? holdings.map((holding, index) => {
+          const state = holdingReviewState(holding);
+          const expanded = expandedRows.has(holding.id);
+          const allocation = allocationForHolding(holding, portfolioTotal);
           return (
-            <article key={holding.id} className={`rounded-2xl border p-4 ${incomplete || holding.confidence === "low" ? "border-amber-200 bg-amber-50/60" : "border-[#495E79]/10 bg-white"}`}>
-              <div className="mb-4 flex items-center justify-between">
-                <p className="font-semibold text-[#24364c]">Holding {index + 1}</p>
-                <button type="button" onClick={() => onRemove(holding.id)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-red-500" aria-label={`Remove ${holding.ticker || holding.name || "holding"}`}>
-                  <Trash2 className="h-4 w-4" />
+            <article key={holding.id} className={`border-t border-[#495E79]/10 first:border-t-0 ${state.needsEditing ? "bg-red-50/30" : state.needsConfirmation ? "bg-amber-50/30" : ""}`}>
+              <div className="grid grid-cols-[minmax(0,1.4fr)_auto] items-center gap-3 px-3 py-3 sm:grid-cols-[minmax(0,1.5fr)_minmax(8rem,1fr)_7rem_7rem_6rem_auto] sm:px-4">
+                <div className="min-w-0">
+                  <p className="truncate font-bold text-[#24364c]">{holding.ticker || `Holding ${index + 1}`}</p>
+                  <p className="truncate text-xs text-[#5F7C84]">{holding.name || "Name not available"}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleRow(holding.id)}
+                  className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-[#495E79] hover:border-[#73a7a5] focus-visible:ring-2 focus-visible:ring-[#F16953] sm:order-last"
+                  aria-expanded={expanded}
+                  aria-controls={`holding-details-${holding.id}`}
+                >
+                  {expanded ? "Close" : "Edit"}
+                  <ChevronDown className={`h-4 w-4 transition ${expanded ? "rotate-180" : ""}`} />
                 </button>
+                <p className="text-sm font-semibold text-[#24364c] max-sm:order-3">
+                  <span className="block text-[10px] uppercase tracking-wide text-[#5F7C84] sm:hidden">Value</span>
+                  {Number(holding.marketValue) > 0 ? money.format(holding.marketValue) : "—"}
+                </p>
+                <p className="text-sm font-semibold text-[#24364c] max-sm:order-4">
+                  <span className="block text-[10px] uppercase tracking-wide text-[#5F7C84] sm:hidden">Allocation</span>
+                  {allocation > 0 ? `${allocation.toFixed(1)}%` : "—"}
+                </p>
+                <div className="max-sm:order-5"><ConfidenceBadge confidence={holding.confidence} /></div>
+                <div className="max-sm:order-6"><StatusBadge state={state} /></div>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-semibold text-[#5F7C84]">Ticker
-                  <input value={holding.ticker} onChange={(event) => onChange(holding.id, "ticker", event.target.value.toUpperCase())} placeholder="VTI" className="mt-1 w-full rounded-lg border px-3 py-2 text-sm font-semibold uppercase focus:ring-2 focus:ring-[#F16953]" />
-                </label>
-                <label className="text-xs font-semibold text-[#5F7C84]">Name
-                  <input value={holding.name} onChange={(event) => onChange(holding.id, "name", event.target.value)} placeholder="Optional name" className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
-                </label>
-                {[
-                  ["shares", "Shares"],
-                  ["marketValue", "Market value"],
-                  ["percent", "Allocation %"],
-                ].map(([field, label]) => (
-                  <label key={field} className="text-xs font-semibold text-[#5F7C84]">{label}
-                    <input type="number" min="0" step={field === "shares" ? "0.0001" : "0.01"} value={holding[field] ?? ""} onChange={(event) => onChange(holding.id, field, event.target.value === "" ? null : Number(event.target.value))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
-                  </label>
-                ))}
-                <label className="text-xs font-semibold text-[#5F7C84]">Category
-                  <select value={holding.category} onChange={(event) => onChange(holding.id, "category", event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]">
-                    {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
-                  </select>
-                </label>
-              </div>
-              <p className="mt-3 text-xs text-[#5F7C84]">Detection confidence: <strong>{holding.confidence}</strong></p>
+
+              {expanded ? (
+                <div id={`holding-details-${holding.id}`} className="border-t border-[#495E79]/10 bg-white px-4 py-4">
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <label className="text-xs font-semibold text-[#5F7C84]">Ticker
+                      <input value={holding.ticker} onChange={(event) => onChange(holding.id, "ticker", event.target.value.toUpperCase())} placeholder="VTI" className="mt-1 w-full rounded-lg border px-3 py-2 text-sm font-semibold uppercase focus:ring-2 focus:ring-[#F16953]" />
+                    </label>
+                    <label className="text-xs font-semibold text-[#5F7C84]">Name
+                      <input value={holding.name} onChange={(event) => onChange(holding.id, "name", event.target.value)} placeholder="Optional name" className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
+                    </label>
+                    <label className="text-xs font-semibold text-[#5F7C84]">Shares
+                      <input type="number" min="0" step="0.0001" value={holding.shares ?? ""} onChange={(event) => onChange(holding.id, "shares", event.target.value === "" ? null : Number(event.target.value))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
+                    </label>
+                    <label className="text-xs font-semibold text-[#5F7C84]">Market value
+                      <input type="number" min="0" step="0.01" value={holding.marketValue ?? ""} onChange={(event) => onChange(holding.id, "marketValue", event.target.value === "" ? null : Number(event.target.value))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
+                    </label>
+                    <label className="text-xs font-semibold text-[#5F7C84]">Category
+                      <select value={holding.category} onChange={(event) => onChange(holding.id, "category", event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]">
+                        {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
+                      </select>
+                    </label>
+                    <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-[#5F7C84]">
+                      Allocation is calculated automatically from market value.
+                    </div>
+                  </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                    <button type="button" onClick={() => onRemove(holding.id)} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500">
+                      <Trash2 className="h-4 w-4" /> Remove holding
+                    </button>
+                    {state.needsConfirmation ? (
+                      <Button type="button" size="sm" onClick={() => { onConfirm(holding.id); toggleRow(holding.id); }} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
+                        <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm details
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </article>
           );
-        })}
-      </div>
-
-      <div className="hidden max-w-full overflow-x-auto rounded-2xl border border-[#495E79]/10 xl:block">
-        <table className="min-w-[980px] w-full border-collapse bg-white text-left text-sm">
-          <caption className="sr-only">Review and correct detected portfolio holdings</caption>
-          <thead className="bg-[#eef2f3] text-xs uppercase tracking-wide text-[#495E79]">
-            <tr>
-              <th className="px-3 py-3">Ticker / name</th>
-              <th className="px-3 py-3">Shares</th>
-              <th className="px-3 py-3">Market value</th>
-              <th className="px-3 py-3">Allocation %</th>
-              <th className="px-3 py-3">Category</th>
-              <th className="px-3 py-3">Confidence</th>
-              <th className="px-3 py-3"><span className="sr-only">Remove</span></th>
-            </tr>
-          </thead>
-          <tbody>
-            {holdings.map((holding) => {
-              const incomplete = !(holding.ticker || holding.name) || !(Number(holding.marketValue) > 0 || Number(holding.percent) > 0);
-              return (
-                <tr key={holding.id} className={`border-t border-[#495E79]/10 ${incomplete || holding.confidence === "low" ? "bg-amber-50/60" : ""}`}>
-                  <td className="p-2">
-                    <div className="grid gap-1">
-                      <input aria-label="Ticker" value={holding.ticker} onChange={(event) => onChange(holding.id, "ticker", event.target.value.toUpperCase())} placeholder="VTI" className="rounded-lg border px-2 py-2 font-semibold uppercase focus:ring-2 focus:ring-[#F16953]" />
-                      <input aria-label="Holding name" value={holding.name} onChange={(event) => onChange(holding.id, "name", event.target.value)} placeholder="Optional name" className="rounded-lg border px-2 py-2 text-xs focus:ring-2 focus:ring-[#F16953]" />
-                    </div>
-                  </td>
-                  {["shares", "marketValue", "percent"].map((field) => (
-                    <td key={field} className="p-2">
-                      <input
-                        aria-label={field === "marketValue" ? "Market value" : field}
-                        type="number"
-                        min="0"
-                        step={field === "shares" ? "0.0001" : "0.01"}
-                        value={holding[field] ?? ""}
-                        onChange={(event) => onChange(holding.id, field, event.target.value === "" ? null : Number(event.target.value))}
-                        className="w-28 rounded-lg border px-2 py-2 focus:ring-2 focus:ring-[#F16953]"
-                      />
-                    </td>
-                  ))}
-                  <td className="p-2">
-                    <select aria-label="Holding category" value={holding.category} onChange={(event) => onChange(holding.id, "category", event.target.value)} className="w-36 rounded-lg border px-2 py-2 focus:ring-2 focus:ring-[#F16953]">
-                      {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
-                    </select>
-                  </td>
-                  <td className="p-2">
-                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
-                      holding.confidence === "high" ? "bg-emerald-100 text-emerald-800" :
-                      holding.confidence === "medium" ? "bg-blue-100 text-blue-800" : "bg-amber-100 text-amber-900"
-                    }`}>
-                      {holding.confidence === "low" ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
-                      {holding.confidence}
-                    </span>
-                  </td>
-                  <td className="p-2">
-                    <button type="button" onClick={() => onRemove(holding.id)} className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-700 focus-visible:ring-2 focus-visible:ring-red-500" aria-label={`Remove ${holding.ticker || holding.name || "holding"}`}>
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        }) : (
+          <div className="px-4 py-8 text-center text-sm text-[#5F7C84]">Uploaded holdings will appear here in a compact review list.</div>
+        )}
       </div>
       <Button id="add-holding-button" type="button" variant="outline" onClick={onAdd} className="mt-4"><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
     </div>
@@ -326,12 +358,12 @@ export default function PlannerTest() {
     fileCount: 0,
     label: "User-confirmed holdings",
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState("");
   const [importAttempt, setImportAttempt] = useState(null);
+  const [replaceTarget, setReplaceTarget] = useState("");
   const [totalValue, setTotalValue] = useState("");
-  const [reviewed, setReviewed] = useState(false);
   const [analysisStarted, setAnalysisStarted] = useState(false);
   const [strategy, setStrategy] = useState("balanced");
   const [goal, setGoal] = useState("long-term-growth");
@@ -344,17 +376,23 @@ export default function PlannerTest() {
     void terminatePortfolioOcr();
   }, []);
 
-  const validHoldings = holdings.filter(
+  const validHoldings = useMemo(() => holdings.filter(
     (holding) => (holding.ticker || holding.name) && (Number(holding.marketValue) > 0 || Number(holding.percent) > 0),
+  ), [holdings]);
+  const valuesTotal = useMemo(
+    () => holdings.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0),
+    [holdings],
   );
-  const valuesTotal = holdings.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
-  const percentageTotal = holdings.reduce((sum, holding) => sum + (Number(holding.percent) || 0), 0);
   const confirmedTotal = Number(totalValue) || valuesTotal;
-  const percentagesOkay = percentageTotal === 0 || Math.abs(percentageTotal - 100) <= 2;
-  const canConfirm = validHoldings.length > 0 && confirmedTotal > 0 && percentagesOkay;
+  const readiness = useMemo(() => buildPortfolioReadiness({
+    holdings,
+    portfolioTotal: confirmedTotal,
+    reviewed: false,
+  }), [holdings, confirmedTotal]);
+  const planGuidance = getPlanGuidance({ goal, strategy, timelineYears });
 
   const snapshot = useMemo(() => {
-    if (!analysisStarted || !reviewed) return null;
+    if (!analysisStarted || !readiness.ready) return null;
     try {
       return buildSnapshot({
         holdings: validHoldings,
@@ -365,7 +403,7 @@ export default function PlannerTest() {
     } catch {
       return null;
     }
-  }, [analysisStarted, reviewed, validHoldings, confirmedTotal, accountType, sourceInfo]);
+  }, [analysisStarted, readiness.ready, validHoldings, confirmedTotal, accountType, sourceInfo]);
 
   const diagnosis = useMemo(() => {
     if (!snapshot) return null;
@@ -379,23 +417,28 @@ export default function PlannerTest() {
   }, [snapshot, strategy, monthlyContribution, rebalanceMode]);
 
   function markDataChanged() {
-    setReviewed(false);
     setAnalysisStarted(false);
-    setError("");
+    setError(null);
   }
 
-  async function processSelectedFiles(selected, retry = false) {
-    const unique = retry ? selected : selected.filter((candidate) => !files.some((file) =>
+  async function processSelectedFiles(selected, options = {}) {
+    const { retry = false, replaceKey = "" } = options;
+    const retainedFiles = replaceKey ? files.filter((file) => uploadKey(file) !== replaceKey) : files;
+    const unique = retry ? selected : selected.filter((candidate) => !retainedFiles.some((file) =>
       file.name === candidate.name && file.size === candidate.size && file.lastModified === candidate.lastModified,
     ));
-    if (files.length + unique.length > FILE_LIMITS.maxFiles) {
-      setError(`Choose no more than ${FILE_LIMITS.maxFiles} files per diagnosis.`);
+    if (retainedFiles.length + unique.length > FILE_LIMITS.maxFiles) {
+      setError({
+        title: `You can add up to ${FILE_LIMITS.maxFiles} files.`,
+        why: "This limit keeps processing fast and private in your browser.",
+        next: "Remove an uploaded item before adding another.",
+      });
       return;
     }
     if (!unique.length) return;
 
     setProcessing(true);
-    setError("");
+    setError(null);
     setWarnings([]);
     setBrokerMessages([]);
     setImportAttempt({
@@ -404,8 +447,11 @@ export default function PlannerTest() {
       types: unique.map((file) => file.name.split(".").pop()?.toUpperCase() || file.type || "Unknown"),
       status: "processing",
       code: "",
+      replaceKey,
     });
-    const nextHoldings = [...holdings];
+    const nextHoldings = replaceKey
+      ? holdings.filter((holding) => holding.uploadKey !== replaceKey)
+      : [...holdings];
     const nextWarnings = [];
     const nextBrokerMessages = [];
     const parsedSources = [];
@@ -420,14 +466,15 @@ export default function PlannerTest() {
             setProcessingLabel(`${status || "Reading screenshot"} ${percent}% — ${file.name}`);
           },
         });
-        nextHoldings.push(...parsed.holdings);
+        const currentUploadKey = uploadKey(file);
+        nextHoldings.push(...parsed.holdings.map((holding) => ({ ...holding, uploadKey: currentUploadKey })));
         nextWarnings.push(...parsed.warnings);
         nextBrokerMessages.push(parsed.brokerMessage);
         parsedSources.push(parsed.source);
         requiresReview = requiresReview || parsed.requiresReview;
       }
       const merged = mergeHoldings(nextHoldings);
-      setFiles((current) => [...current, ...unique]);
+      setFiles([...retainedFiles, ...unique]);
       setHoldings(merged);
       setWarnings(nextWarnings);
       setBrokerMessages(nextBrokerMessages);
@@ -448,7 +495,13 @@ export default function PlannerTest() {
       }
       const detectedTotal = merged.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
       if (detectedTotal > 0 && !Number(totalValue)) setTotalValue(detectedTotal.toFixed(2));
-      if (!merged.length) setError("No holdings were detected. Add a row manually or try a clearer export.");
+      if (!merged.length) {
+        setError({
+          title: "No holdings are ready to review yet.",
+          why: "The uploaded data did not include a usable ticker or value.",
+          next: "Try a clearer export or add one holding manually.",
+        });
+      }
       setImportAttempt((current) => ({
         ...current,
         status: requiresReview ? "partial" : "complete",
@@ -456,7 +509,7 @@ export default function PlannerTest() {
       markDataChanged();
     } catch (caught) {
       const normalized = normalizePortfolioImportError(caught);
-      setError(formatPortfolioImportError(caught));
+      setError(getImportErrorGuidance(normalized));
       setImportAttempt((current) => ({
         ...current,
         status: "failed",
@@ -473,7 +526,39 @@ export default function PlannerTest() {
       const portfolioInput = document.getElementById("portfolio-files");
       if (screenshotInput) screenshotInput.value = "";
       if (portfolioInput) portfolioInput.value = "";
+      const replacementInput = document.getElementById("replace-portfolio-file");
+      if (replacementInput) replacementInput.value = "";
+      setReplaceTarget("");
     }
+  }
+
+  function removeUpload(key) {
+    const nextHoldings = holdings.filter((holding) => holding.uploadKey !== key);
+    const nextFiles = files.filter((file) => uploadKey(file) !== key);
+    setFiles(nextFiles);
+    setHoldings(nextHoldings);
+    const nextTotal = nextHoldings.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
+    setTotalValue(nextTotal > 0 ? nextTotal.toFixed(2) : "");
+    if (!nextFiles.length) {
+      setWarnings([]);
+      setBrokerMessages([]);
+      setSourceInfo({
+        kind: "manual",
+        broker: "Generic import",
+        brokerConfidence: "low",
+        fileCount: 0,
+        label: "User-confirmed holdings",
+      });
+    } else {
+      setSourceInfo((current) => ({ ...current, fileCount: nextFiles.length }));
+    }
+    setImportAttempt(null);
+    markDataChanged();
+  }
+
+  function replaceUpload(key) {
+    setReplaceTarget(key);
+    requestAnimationFrame(() => document.getElementById("replace-portfolio-file")?.click());
   }
 
   function updateHolding(id, field, value) {
@@ -490,12 +575,33 @@ export default function PlannerTest() {
     markDataChanged();
   }
 
+  function confirmHolding(id) {
+    setHoldings((current) => current.map((holding) => holding.id === id
+      ? { ...holding, confidence: "high", warnings: [] }
+      : holding));
+    markDataChanged();
+  }
+
+  function addHolding() {
+    const holding = emptyHolding();
+    setHoldings((current) => [...current, holding]);
+    markDataChanged();
+    requestAnimationFrame(() => {
+      document.getElementById("review-heading")?.scrollIntoView({ behavior: "smooth" });
+      requestAnimationFrame(() => document.querySelector(`[id="holding-details-${holding.id}"] input`)?.focus());
+    });
+  }
+
   function analyze() {
-    if (!canConfirm || !reviewed) {
-      setError("Review the holdings, confirm the total, and check the confirmation box first.");
+    if (!readiness.ready) {
+      setError({
+        title: "Your portfolio needs one more review step.",
+        why: readiness.actions[0] || "Some portfolio details are incomplete.",
+        next: "Use the readiness summary to finish the remaining item, then analyze.",
+      });
       return;
     }
-    setError("");
+    setError(null);
     setAnalysisStarted(true);
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     requestAnimationFrame(() => document.getElementById("diagnosis-results")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" }));
@@ -548,6 +654,14 @@ export default function PlannerTest() {
               />
             </div>
           </div>
+          <input
+            id="replace-portfolio-file"
+            type="file"
+            className="sr-only"
+            accept={ACCEPTED_TYPES}
+            onChange={(event) => processSelectedFiles(Array.from(event.target.files || []), { replaceKey: replaceTarget })}
+            disabled={processing}
+          />
           <p className="mt-4 break-all text-xs text-[#5F7C84]">Limits: {FILE_LIMITS.maxFiles} files, 10 MB each, first {FILE_LIMITS.maxPdfPages} PDF pages. Accepted types: {ACCEPTED_TYPES}.</p>
           {processing ? <div className="mt-5 rounded-2xl bg-[#eef2f3] p-4 text-sm font-semibold" role="status">{processingLabel}</div> : null}
           {importAttempt ? (
@@ -557,13 +671,37 @@ export default function PlannerTest() {
               </p>
               <p className="mt-1 text-xs capitalize">
                 Status: {importAttempt.status === "partial" ? "Partial import — review required" : importAttempt.status}
-                {importAttempt.code ? ` · ${importAttempt.code}` : ""}
               </p>
             </div>
           ) : null}
           {files.length ? (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {files.map((file) => <span key={`${file.name}-${file.lastModified}`} className="rounded-full bg-[#73a7a5]/10 px-3 py-1.5 text-xs font-medium text-[#496f70]">{file.name}</span>)}
+            <div className="mt-5" aria-label="Uploaded items">
+              <h3 className="text-sm font-bold text-[#24364c]">Uploaded items</h3>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                {files.map((file) => {
+                  const key = uploadKey(file);
+                  const linkedHoldings = holdings.filter((holding) => holding.uploadKey === key);
+                  const needsReview = linkedHoldings.some((holding) => holdingReviewState(holding).status !== "Ready");
+                  return (
+                    <article key={key} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-3 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#365e60]">{file.name}</p>
+                        <p className="mt-0.5 text-xs text-[#5F7C84]">
+                          {(file.name.split(".").pop() || file.type || "File").toUpperCase()} · {linkedHoldings.length} holding{linkedHoldings.length === 1 ? "" : "s"} · {needsReview ? "Review needed" : "Imported"}
+                        </p>
+                      </div>
+                      <div className="flex flex-none">
+                        <button type="button" onClick={() => replaceUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Replace ${file.name}`}>
+                          <RefreshCw className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => removeUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500" aria-label={`Remove ${file.name}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
           {brokerMessages.length ? (
@@ -583,17 +721,16 @@ export default function PlannerTest() {
           ))}
           {error ? (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
-              <p className="text-sm font-semibold">{error}</p>
+              <p className="text-sm font-bold">{error.title}</p>
+              <p className="mt-1 text-sm"><strong>Why this happened:</strong> {error.why}</p>
+              <p className="mt-1 text-sm"><strong>Next step:</strong> {error.next}</p>
               <div className="mt-3 flex flex-wrap gap-2 pr-14 sm:pr-0">
                 {importAttempt?.files?.length ? (
-                  <Button type="button" variant="outline" size="sm" onClick={() => processSelectedFiles(importAttempt.files, true)} disabled={processing}>
+                  <Button type="button" variant="outline" size="sm" onClick={() => processSelectedFiles(importAttempt.files, { retry: true, replaceKey: importAttempt.replaceKey })} disabled={processing}>
                     Retry import
                   </Button>
                 ) : null}
-                <Button type="button" variant="outline" size="sm" onClick={() => {
-                  document.getElementById("review-heading")?.scrollIntoView({ behavior: "smooth" });
-                  requestAnimationFrame(() => document.getElementById("add-holding-button")?.focus());
-                }}>
+                <Button type="button" variant="outline" size="sm" onClick={addHolding}>
                   Add holding manually
                 </Button>
               </div>
@@ -605,32 +742,59 @@ export default function PlannerTest() {
           <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
               <h2 id="review-heading" className="text-2xl font-bold">2. Review and correct holdings</h2>
-              <p className="mt-2 text-sm text-[#5F7C84]">Yellow rows are incomplete or were detected with low confidence.</p>
+              <p className="mt-2 text-sm text-[#5F7C84]">Complete rows stay compact. Only uncertain or incomplete details need your attention.</p>
             </div>
             <span className="text-sm font-semibold text-[#5F7C84]">{holdings.length} row{holdings.length === 1 ? "" : "s"}</span>
           </div>
           <HoldingsTable
             holdings={holdings}
+            portfolioTotal={confirmedTotal}
             onChange={updateHolding}
-            onRemove={(id) => { setHoldings((current) => current.filter((holding) => holding.id !== id)); markDataChanged(); }}
-            onAdd={() => { setHoldings((current) => [...current, emptyHolding()]); markDataChanged(); }}
+            onConfirm={confirmHolding}
+            onRemove={(id) => {
+              const nextHoldings = holdings.filter((holding) => holding.id !== id);
+              setHoldings(nextHoldings);
+              const nextTotal = nextHoldings.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
+              setTotalValue(nextTotal > 0 ? nextTotal.toFixed(2) : "");
+              markDataChanged();
+            }}
+            onAdd={addHolding}
           />
 
-          <div className="mt-7 grid gap-5 md:grid-cols-2">
+          <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
             <div>
-              <FieldLabel htmlFor="portfolio-total">Confirmed total portfolio value</FieldLabel>
+              <FieldLabel htmlFor="portfolio-total">Portfolio total</FieldLabel>
               <input id="portfolio-total" type="number" min="0" step="0.01" value={totalValue} onChange={(event) => { setTotalValue(event.target.value); markDataChanged(); }} placeholder={valuesTotal > 0 ? valuesTotal.toFixed(2) : "Enter total value"} className="w-full rounded-xl border border-[#495E79]/20 px-4 py-3 focus:ring-2 focus:ring-[#F16953]" />
-              {valuesTotal > 0 ? <p className="mt-2 text-xs text-[#5F7C84]">Position values total {money.format(valuesTotal)}.</p> : null}
+              <p className="mt-2 text-xs text-[#5F7C84]">
+                {valuesTotal > 0 ? `Calculated from position values: ${money.format(valuesTotal)}. Adjust only if your statement total differs.` : "Add market values and the planner will calculate this automatically."}
+              </p>
             </div>
-            <div className={`rounded-2xl p-4 ${percentagesOkay ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-900"}`}>
-              <p className="font-semibold">Allocation check: {percentageTotal.toFixed(1)}%</p>
-              <p className="mt-1 text-xs leading-5">{percentageTotal === 0 ? "Percentages will be calculated from position values." : percentagesOkay ? "Percentages are approximately 100% and will be normalized." : "Correct the rows so percentages are within 98–102%."}</p>
+            <div className="rounded-2xl border border-[#495E79]/10 bg-slate-50 p-4" aria-live="polite">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[.16em] text-[#5F7C84]">Portfolio readiness</p>
+                  <p className="mt-1 text-3xl font-bold text-[#24364c]">{readiness.score}%</p>
+                </div>
+                <div className="h-14 w-14 rounded-full p-1" style={{ background: `conic-gradient(#73a7a5 ${readiness.score}%, #e2e8f0 0)` }} aria-hidden="true">
+                  <div className="h-full w-full rounded-full bg-slate-50" />
+                </div>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200" aria-hidden="true">
+                <div className="h-full rounded-full bg-[#73a7a5] transition-all" style={{ width: `${readiness.score}%` }} />
+              </div>
+              <ul className="mt-3 grid gap-1 text-xs text-[#495E79]">
+                {readiness.completed.map((item) => (
+                  <li key={item.label} className="flex items-center gap-2">
+                    {item.done ? <CheckCircle2 className="h-4 w-4 text-emerald-600" /> : <span className="h-4 w-4 rounded-full border-2 border-amber-400" />}
+                    {item.label}
+                  </li>
+                ))}
+              </ul>
+              <p className={`mt-3 rounded-lg px-3 py-2 text-sm font-semibold ${readiness.ready ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>
+                {readiness.ready ? "Ready to analyze." : `Action needed: ${readiness.actions[0]}`}
+              </p>
             </div>
           </div>
-          <label className={`mt-6 flex gap-3 rounded-2xl border p-4 text-sm leading-6 ${canConfirm ? "cursor-pointer border-[#73a7a5]/40 bg-[#73a7a5]/5" : "border-slate-200 bg-slate-50 text-slate-500"}`}>
-            <input type="checkbox" checked={reviewed} disabled={!canConfirm} onChange={(event) => { setReviewed(event.target.checked); setAnalysisStarted(false); }} className="mt-1 h-4 w-4 accent-[#F16953]" />
-            I reviewed these holdings, corrected incomplete rows, and confirm the portfolio total is accurate enough for this educational diagnosis.
-          </label>
         </section>
 
         <section className="mt-8 rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="plan-heading">
@@ -672,9 +836,24 @@ export default function PlannerTest() {
               <input id="contribution" type="number" min="0" value={monthlyContribution} onChange={(event) => setMonthlyContribution(Number(event.target.value))} className="w-full rounded-xl border px-4 py-3 focus:ring-2 focus:ring-[#F16953]" />
             </div>
           </div>
-          <Button onClick={analyze} disabled={!reviewed || !canConfirm || processing} size="lg" className="mt-7 w-full bg-[#F16953] hover:bg-[#d95840] disabled:cursor-not-allowed">
-            Analyze Confirmed Portfolio <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+          {planGuidance ? (
+            <div className="mt-5 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+              <p><strong>Plan guidance:</strong> {planGuidance.message} You can continue with this choice.</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => setStrategy(planGuidance.suggestion)} className="min-h-11 flex-none border-amber-300 bg-white">
+                Use {planGuidance.suggestion}
+              </Button>
+            </div>
+          ) : (
+            <p className="mt-5 flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              <CheckCircle2 className="h-4 w-4" /> Your goal, strategy, and timeline are aligned.
+            </p>
+          )}
+          <div className="sticky bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-20 mr-14 mt-7 rounded-2xl border border-white/60 bg-white/95 p-2 shadow-xl backdrop-blur md:static md:mr-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
+            <Button onClick={analyze} disabled={!readiness.ready || processing} size="lg" className="min-h-12 w-full bg-[#F16953] text-base hover:bg-[#d95840] disabled:cursor-not-allowed">
+              {readiness.ready ? "Analyze My Portfolio" : `Next: ${readiness.actions[0] || "Add portfolio data"}`}
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
         </section>
 
         <div id="diagnosis-results">
