@@ -18,6 +18,7 @@ export const PREMIUM_CHECKOUT_URL = "https://roobensfinds.gumroad.com/l/portfoli
 export const PREMIUM_APP_STATUS: "preview" | "waitlist" | "live" = "preview";
 export const PREMIUM_APP_ROUTE = "/premium-preview";
 export const ENABLE_PAID_AI_CHAT = false;
+export const ENABLE_LOCAL_PORTFOLIO_MEMORY = true;
 
 // ── FORMS ─────────────────────────────────────────────────────────────────────
 // Newsletter signup endpoint (e.g. Formspree, Mailchimp, ConvertKit)

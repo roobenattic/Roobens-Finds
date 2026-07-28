@@ -25,7 +25,10 @@ import {
   YAxis,
 } from "recharts";
 import { Button } from "@/components/ui/button";
-import PremiumAppPreview from "@/components/planner/PremiumAppPreview";
+import PortfolioDashboard from "@/components/planner/PortfolioDashboard";
+import ScenarioExplorer from "@/components/planner/ScenarioExplorer";
+import PremiumIntelligencePreview from "@/components/planner/PremiumIntelligencePreview";
+import LocalDataControls from "@/components/planner/LocalDataControls";
 import {
   ACCEPTED_TYPES,
   FILE_LIMITS,
@@ -34,9 +37,9 @@ import {
 } from "@/lib/portfolioFiles";
 import { generatePortfolioDiagnosisPdf } from "@/lib/generatePortfolioDiagnosisPdf";
 // @ts-ignore Shared browser/server calculation module.
-import { analyzePortfolio } from "../../lib/portfolioAnalysis.js";
+import { analyzeSnapshot, buildScenario, buildSnapshot } from "../../lib/portfolioAnalysis.js";
 
-const CATEGORIES = ["Growth", "Income", "Real Estate", "Bonds", "Cash", "Other"];
+const CATEGORIES = ["Growth", "Income", "Real Estate", "Bonds", "Cash", "Other", "Needs review"];
 const COLORS = ["#F16953", "#73a7a5", "#FECFA5", "#58708f", "#9bd1cd", "#a78b7b"];
 
 const emptyHolding = () => ({
@@ -45,9 +48,18 @@ const emptyHolding = () => ({
   name: "",
   shares: null,
   marketValue: null,
+  costBasis: null,
   percent: null,
-  category: "Other",
+  category: "Needs review",
+  assetClass: "Needs review",
   confidence: "low",
+  sourceRef: "Manual entry",
+  warnings: [{
+    code: "manual-entry",
+    message: "This holding was added manually.",
+    action: "Confirm its value and category.",
+    severity: "info",
+  }],
 });
 
 const money = new Intl.NumberFormat("en-US", {
@@ -303,6 +315,14 @@ export default function PlannerTest() {
   const [files, setFiles] = useState([]);
   const [holdings, setHoldings] = useState([]);
   const [warnings, setWarnings] = useState([]);
+  const [brokerMessages, setBrokerMessages] = useState([]);
+  const [sourceInfo, setSourceInfo] = useState({
+    kind: "manual",
+    broker: "Generic import",
+    brokerConfidence: "low",
+    fileCount: 0,
+    label: "User-confirmed holdings",
+  });
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState("");
@@ -314,6 +334,7 @@ export default function PlannerTest() {
   const [accountType, setAccountType] = useState("brokerage");
   const [timelineYears, setTimelineYears] = useState(10);
   const [monthlyContribution, setMonthlyContribution] = useState(500);
+  const [rebalanceMode, setRebalanceMode] = useState("contribution-only");
 
   const validHoldings = holdings.filter(
     (holding) => (holding.ticker || holding.name) && (Number(holding.marketValue) > 0 || Number(holding.percent) > 0),
@@ -324,22 +345,30 @@ export default function PlannerTest() {
   const percentagesOkay = percentageTotal === 0 || Math.abs(percentageTotal - 100) <= 2;
   const canConfirm = validHoldings.length > 0 && confirmedTotal > 0 && percentagesOkay;
 
-  const diagnosis = useMemo(() => {
+  const snapshot = useMemo(() => {
     if (!analysisStarted || !reviewed) return null;
     try {
-      return analyzePortfolio({
+      return buildSnapshot({
         holdings: validHoldings,
         totalValue: confirmedTotal,
-        strategy,
         accountType,
-        timelineYears,
-        monthlyContribution,
-        goal,
+        source: sourceInfo,
       });
     } catch {
       return null;
     }
-  }, [analysisStarted, reviewed, validHoldings, confirmedTotal, strategy, accountType, timelineYears, monthlyContribution, goal]);
+  }, [analysisStarted, reviewed, validHoldings, confirmedTotal, accountType, sourceInfo]);
+
+  const diagnosis = useMemo(() => {
+    if (!snapshot) return null;
+    const scenario = buildScenario(snapshot, {
+      strategy,
+      contributionAmount: monthlyContribution,
+      rebalanceMode,
+      name: `${strategy} ${rebalanceMode} model`,
+    });
+    return analyzeSnapshot(snapshot, scenario);
+  }, [snapshot, strategy, monthlyContribution, rebalanceMode]);
 
   function markDataChanged() {
     setReviewed(false);
@@ -360,8 +389,11 @@ export default function PlannerTest() {
     setProcessing(true);
     setError("");
     setWarnings([]);
+    setBrokerMessages([]);
     const nextHoldings = [...holdings];
     const nextWarnings = [];
+    const nextBrokerMessages = [];
+    const parsedSources = [];
     try {
       for (let index = 0; index < unique.length; index += 1) {
         const file = unique[index];
@@ -369,11 +401,29 @@ export default function PlannerTest() {
         const parsed = await parsePortfolioFile(file);
         nextHoldings.push(...parsed.holdings);
         nextWarnings.push(...parsed.warnings);
+        nextBrokerMessages.push(parsed.brokerMessage);
+        parsedSources.push(parsed.source);
       }
       const merged = mergeHoldings(nextHoldings);
       setFiles((current) => [...current, ...unique]);
       setHoldings(merged);
       setWarnings(nextWarnings);
+      setBrokerMessages(nextBrokerMessages);
+      if (parsedSources.length) {
+        const brokers = [...new Set(parsedSources.map((source) => source.broker))];
+        const brokerConfidence = parsedSources.every((source) => source.brokerConfidence === "high")
+          ? "high"
+          : parsedSources.some((source) => source.brokerConfidence === "medium")
+            ? "medium"
+            : "low";
+        setSourceInfo({
+          kind: parsedSources.length > 1 ? "mixed" : parsedSources[0].kind,
+          broker: brokers.length === 1 ? brokers[0] : "Mixed imports",
+          brokerConfidence,
+          fileCount: parsedSources.length,
+          label: brokers.length === 1 ? parsedSources[0].label : "Multiple user-provided files",
+        });
+      }
       const detectedTotal = merged.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
       if (detectedTotal > 0 && !Number(totalValue)) setTotalValue(detectedTotal.toFixed(2));
       if (!merged.length) setError("No holdings were detected. Add a row manually or try a clearer export.");
@@ -391,7 +441,16 @@ export default function PlannerTest() {
   }
 
   function updateHolding(id, field, value) {
-    setHoldings((current) => current.map((holding) => holding.id === id ? { ...holding, [field]: value, confidence: field === "confidence" ? value : "high" } : holding));
+    setHoldings((current) => current.map((holding) => {
+      if (holding.id !== id) return holding;
+      const next = { ...holding, [field]: value, confidence: field === "confidence" ? value : "high" };
+      if (field === "category") next.assetClass = value;
+      if (field === "ticker") next.symbol = value;
+      if (field === "category" && value !== "Needs review") {
+        next.warnings = (next.warnings || []).filter((item) => item.code !== "unknown-classification");
+      }
+      return next;
+    }));
     markDataChanged();
   }
 
@@ -402,7 +461,8 @@ export default function PlannerTest() {
     }
     setError("");
     setAnalysisStarted(true);
-    requestAnimationFrame(() => document.getElementById("diagnosis-results")?.scrollIntoView({ behavior: "smooth" }));
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    requestAnimationFrame(() => document.getElementById("diagnosis-results")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" }));
   }
 
   return (
@@ -459,7 +519,21 @@ export default function PlannerTest() {
               {files.map((file) => <span key={`${file.name}-${file.lastModified}`} className="rounded-full bg-[#73a7a5]/10 px-3 py-1.5 text-xs font-medium text-[#496f70]">{file.name}</span>)}
             </div>
           ) : null}
-          {warnings.map((warning) => <p key={warning} className="mt-3 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900"><AlertTriangle className="h-4 w-4 flex-none" />{warning}</p>)}
+          {brokerMessages.length ? (
+            <div className="mt-4 grid gap-2" aria-live="polite">
+              {brokerMessages.map((message, index) => (
+                <p key={`${message}-${index}`} className="rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-4 py-3 text-sm text-[#365e60]">
+                  {message}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {warnings.map((warning) => (
+            <p key={`${warning.code}-${warning.message}`} className="mt-3 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
+              <span><strong>{warning.message}</strong>{warning.action ? ` ${warning.action}` : ""}</span>
+            </p>
+          ))}
           {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800" role="alert">{error}</p> : null}
         </section>
 
@@ -540,13 +614,20 @@ export default function PlannerTest() {
         </section>
 
         <div id="diagnosis-results">
-          {diagnosis ? (
-            <>
-              <DiagnosisDashboard diagnosis={diagnosis} onDownload={() => generatePortfolioDiagnosisPdf(diagnosis)} />
-              <div className="mt-8 rounded-[2rem] bg-[#081423]">
-                <PremiumAppPreview compact />
-              </div>
-            </>
+          {diagnosis && snapshot ? (
+            <div className="mt-8 space-y-8">
+              <ScenarioExplorer
+                strategy={strategy}
+                contributionAmount={monthlyContribution}
+                rebalanceMode={rebalanceMode}
+                onStrategyChange={setStrategy}
+                onContributionChange={setMonthlyContribution}
+                onModeChange={setRebalanceMode}
+              />
+              <PortfolioDashboard analysis={diagnosis} onDownload={() => generatePortfolioDiagnosisPdf(diagnosis)} />
+              <LocalDataControls snapshot={snapshot} />
+              <PremiumIntelligencePreview analysis={diagnosis} />
+            </div>
           ) : analysisStarted ? (
             <p className="mt-8 rounded-2xl bg-red-50 p-5 text-red-800" role="alert">The reviewed data could not produce a trustworthy diagnosis. Recheck the holdings and total.</p>
           ) : null}
