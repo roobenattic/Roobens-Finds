@@ -11,9 +11,13 @@
 // When set, the "Download Free Version" button opens this URL directly — no intermediate page.
 export const FREE_DOWNLOAD_URL = "https://drive.google.com/uc?export=download&id=1SMY6XVmmbWDmVxAsxtwryixSEkB19EEY"; // TODO: replace with real URL
 
-// Premium checkout: direct link to Gumroad, Stripe, or Payhip checkout page.
-// When set, the "Get Premium — $17" button opens this URL directly — no intermediate page.
+// Legacy checkout retained behind the Premium app status flag during migration.
+// Public Planner 2.0 CTAs must route through the preview or waitlist first.
 export const PREMIUM_CHECKOUT_URL = "https://roobensfinds.gumroad.com/l/portfolio-planner-premium?wanted=true"; // TODO: replace with real URL
+
+export const PREMIUM_APP_STATUS: "preview" | "waitlist" | "live" = "preview";
+export const PREMIUM_APP_ROUTE = "/premium-preview";
+export const ENABLE_PAID_AI_CHAT = false;
 
 // ── FORMS ─────────────────────────────────────────────────────────────────────
 // Newsletter signup endpoint (e.g. Formspree, Mailchimp, ConvertKit)

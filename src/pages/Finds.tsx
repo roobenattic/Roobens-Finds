@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Link } from "wouter";
-import { FREE_DOWNLOAD_URL, isConfigured } from "../config";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -450,8 +449,8 @@ export default function Finds() {
             className="text-[#FECFA5]/80 mb-8 text-base"
             style={{ fontFamily: "'DM Sans', sans-serif" }}
           >
-            The Portfolio Planner is our flagship digital tool — free to
-            download, with a one-time premium upgrade.
+            The Portfolio Planner is our flagship tool: start with a free
+            diagnosis, then preview the upcoming living Premium Workspace.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -465,31 +464,15 @@ export default function Finds() {
               </Button>
             </Link>
 
-            {isConfigured(FREE_DOWNLOAD_URL) ? (
-              <a
-                href={FREE_DOWNLOAD_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+            <Link href="/portfolio-planner">
+              <Button
+                variant="outline"
+                className="border-[#FECFA5]/40 text-[#FECFA5] hover:bg-[#FECFA5]/10 font-semibold px-8"
+                style={{ fontFamily: "'Poppins', sans-serif" }}
               >
-                <Button
-                  variant="outline"
-                  className="border-[#FECFA5]/40 text-[#FECFA5] hover:bg-[#FECFA5]/10 font-semibold px-8"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Get the Free Planner
-                </Button>
-              </a>
-            ) : (
-              <Link href="/product">
-                <Button
-                  variant="outline"
-                  className="border-[#FECFA5]/40 text-[#FECFA5] hover:bg-[#FECFA5]/10 font-semibold px-8"
-                  style={{ fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Get the Free Planner
-                </Button>
-              </Link>
-            )}
+                Start Free Diagnosis
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

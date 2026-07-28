@@ -17,10 +17,8 @@ import {
   Lock,
   CheckCircle2,
   Sparkles,
-  Star,
   ChevronDown,
 } from "lucide-react";
-import { FREE_DOWNLOAD_URL, PREMIUM_CHECKOUT_URL, isConfigured } from "@/config";
 
 const PRODUCT_MOCKUP = "https://d2xsxph8kpxj0f.cloudfront.net/310519663430392752/ACudkEUZtZSJcQ9QHfKGZL/product-mockup-JTHwG2mphwMYfjMFiBKXCW.webp";
 
@@ -28,26 +26,26 @@ const tools = [
   {
     id: "portfolio-planner",
     icon: <BarChart3 className="w-6 h-6" />,
-    title: "Portfolio Planner",
-    tagline: "Organize your investments in one clean planner",
-    desc: "A beginner-friendly digital planner to track your stocks, ETFs, dividends, and investment goals. Available free or as a one-time premium upgrade.",
-    price: "Free / $17",
-    priceNote: "Free version + $17 one-time for premium",
+    title: "Free Portfolio Diagnosis",
+    tagline: "Understand your portfolio and get a clear next step",
+    desc: "Upload and verify your holdings, then receive a health score, allocation view, risks, strengths, one category-level action, and a personalized PDF.",
+    price: "Free",
+    priceNote: "Premium workspace is in preview",
     status: "live",
     badge: "Flagship",
     badgeColor: "bg-[#F16953] text-white",
     category: "Investing",
     features: [
-      "Basic portfolio tracker (Free)",
-      "Dividend income log (Premium)",
-      "Asset allocation view (Premium)",
-      "Goal planner & review templates",
-      "AI instruction page (Premium)",
-      "Beginner investing guide",
+      "Screenshot, PDF, CSV, and TXT upload",
+      "Editable holdings review",
+      "Health score and allocation chart",
+      "Current vs target comparison",
+      "One practical action",
+      "Personalized PDF report",
     ],
-    href: "/product",
-    freeHref: FREE_DOWNLOAD_URL,
-    premiumHref: PREMIUM_CHECKOUT_URL,
+    href: "/portfolio-planner",
+    freeHref: "/portfolio-planner",
+    premiumHref: "/premium-preview",
     image: PRODUCT_MOCKUP,
   },
   {
@@ -171,8 +169,8 @@ export default function Tools() {
             <div className="flex flex-wrap items-center gap-4">
               {[
                 "Beginner-friendly by design",
-                "No subscriptions",
-                "Instant digital downloads",
+                "Private by design",
+                "Free diagnosis first",
               ].map((t) => (
                 <div key={t} className="flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4 text-[#F16953]" />
@@ -321,36 +319,18 @@ export default function Tools() {
                     {/* CTA */}
                     {tool.status === "live" ? (
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                        {isConfigured(tool.freeHref ?? "") ? (
-                          <a href={tool.freeHref!} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                              <Download className="mr-2 w-4 h-4" />
-                              Get Free Version
-                            </Button>
-                          </a>
-                        ) : (
-                          <Link href="/product">
-                            <Button variant="outline" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                              <Download className="mr-2 w-4 h-4" />
-                              Get Free Version
-                            </Button>
-                          </Link>
-                        )}
-                        {isConfigured(tool.premiumHref ?? "") ? (
-                          <a href={tool.premiumHref!} target="_blank" rel="noopener noreferrer">
-                            <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                              Get Premium — $17
-                              <ArrowRight className="ml-2 w-4 h-4" />
-                            </Button>
-                          </a>
-                        ) : (
-                          <Link href="/product">
-                            <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-                              Get Premium — $17
-                              <ArrowRight className="ml-2 w-4 h-4" />
-                            </Button>
-                          </Link>
-                        )}
+                        <Link href="/portfolio-planner">
+                          <Button variant="outline" className="border-[#495E79]/25 text-[#495E79] hover:bg-[#495E79] hover:text-white font-semibold" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                            <Download className="mr-2 w-4 h-4" />
+                            Start Free Diagnosis
+                          </Button>
+                        </Link>
+                        <Link href="/premium-preview">
+                          <Button className="bg-[#F16953] hover:bg-[#d95840] text-white font-semibold shadow-md shadow-[#F16953]/25" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                            Preview Premium App
+                            <ArrowRight className="ml-2 w-4 h-4" />
+                          </Button>
+                        </Link>
                         <Link href={tool.href}>
                           <span className="text-[#495E79]/50 text-sm hover:text-[#F16953] transition-colors" style={{ fontFamily: "'DM Sans', sans-serif" }}>
                             Full details →
@@ -417,11 +397,7 @@ export default function Tools() {
       <section className="py-16 bg-[#495E79]">
         <div className="container">
           <div className="max-w-2xl mx-auto text-center">
-            <div className="flex items-center justify-center gap-1 mb-4">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <Star key={s} className="w-4 h-4 fill-[#F16953] text-[#F16953]" />
-              ))}
-            </div>
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[.2em] text-[#FECFA5]">Product principles</p>
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Every Tool We Build Follows the Same Promise
             </h2>
@@ -429,7 +405,7 @@ export default function Tools() {
               {[
                 { title: "Simple by Design", desc: "No jargon. No complexity. Every tool is built so you can start using it in minutes." },
                 { title: "Built for Beginners", desc: "We design for people who are just starting out — not for finance professionals." },
-                { title: "One-Time, No Subscriptions", desc: "Pay once and own it forever. We believe in fair, transparent pricing." },
+                { title: "Honest Availability", desc: "Preview features are labeled clearly until the living Premium Workspace is functional." },
               ].map((p, i) => (
                 <div key={i} className="bg-white/5 border border-white/10 rounded-sm p-5 text-left">
                   <h3 className="text-[#F16953] font-bold text-base mb-2" style={{ fontFamily: "'Poppins', sans-serif", fontSize: "1.05rem" }}>{p.title}</h3>
