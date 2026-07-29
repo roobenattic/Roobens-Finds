@@ -53,6 +53,19 @@ To preview the production build locally:
 npm run preview
 ```
 
+### Portfolio import services
+
+The Planner always tries local CSV, native PDF text, TXT, and browser OCR first. Security identity is verified by the server-side OpenFIGI resolver; unresolved or ambiguous results stay in review instead of receiving a guessed name or category.
+
+Optional multimodal document assist is disabled by default. To enable it in a server environment, copy the non-secret names from `.env.example` and configure:
+
+- `DOCUMENT_ASSIST_ENABLED=true`
+- `OPENAI_API_KEY` as a server-only secret
+- optional `OPENAI_DOCUMENT_MODEL` override
+- optional `OPENFIGI_API_KEY` for a higher identifier-mapping rate limit
+
+Do not expose these values with a `VITE_` prefix. Document assist currently sends only the first normalized image/PDF page after explicit user consent. HEIC works only when the user’s browser can decode it; otherwise the UI asks for a JPG export.
+
 ---
 
 ## How to Deploy to Vercel

@@ -37,6 +37,7 @@ import {
   mergeHoldings,
   normalizePortfolioImportError,
   parsePortfolioFile,
+  reprocessWithDocumentAssist,
   terminatePortfolioOcr,
 } from "@/lib/portfolioFiles";
 import { generatePortfolioDiagnosisPdf } from "@/lib/generatePortfolioDiagnosisPdf";
@@ -129,7 +130,7 @@ function StatusBadge({ state }) {
   return <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${tone}`}>{state.status}</span>;
 }
 
-function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove, onAdd }) {
+function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandidate, onRemove, onAdd }) {
   const [expandedRows, setExpandedRows] = useState(() => new Set());
 
   useEffect(() => {
@@ -193,6 +194,39 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove
 
               {expanded ? (
                 <div id={`holding-details-${holding.id}`} className="border-t border-[#495E79]/10 bg-white px-4 py-4">
+                  <div className="mb-4 rounded-xl bg-slate-50 px-4 py-3 text-xs leading-5 text-[#495E79]">
+                    <p className="font-semibold text-[#24364c]">
+                      {holding.verification?.status === "verified"
+                        ? `Verified by ${holding.verification.instrument.source}: ${holding.verification.instrument.name} · ${holding.verification.instrument.exchange || "exchange unavailable"} · ${holding.verification.instrument.securityType || "type unavailable"}`
+                        : holding.verification?.status === "ambiguous"
+                          ? `The image reads ${holding.ticker || "an unclear ticker"}; more than one possible security matched.`
+                          : `Needs review — we could not verify ${holding.ticker || "this security"} yet.`}
+                    </p>
+                    <p className="mt-1">{holding.verification?.evidence?.join(" ") || "No independent verification evidence is available."}</p>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer font-semibold">Where this row came from</summary>
+                      <p className="mt-1">{holding.sourceRef || "Imported document"}{holding.evidence?.symbol?.page ? ` · page ${holding.evidence.symbol.page}` : ""}</p>
+                      {holding.rowEvidence ? <p className="mt-1 break-words rounded-lg bg-white p-2 font-mono text-[11px]">{holding.rowEvidence}</p> : null}
+                    </details>
+                  </div>
+                  {holding.verification?.status === "ambiguous" ? (
+                    <fieldset className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <legend className="px-1 text-sm font-bold text-amber-950">Choose only if this matches your statement</legend>
+                      <div className="mt-2 grid gap-2">
+                        {holding.verification.candidates.map((candidate) => (
+                          <button
+                            key={candidate.figi || `${candidate.symbol}-${candidate.exchange}`}
+                            type="button"
+                            onClick={() => onCandidate(holding.id, candidate)}
+                            className="min-h-11 rounded-lg border border-amber-300 bg-white px-3 py-2 text-left text-sm hover:border-[#F16953] focus-visible:ring-2 focus-visible:ring-[#F16953]"
+                          >
+                            <strong>{candidate.name || candidate.symbol}</strong>
+                            <span className="block text-xs text-[#5F7C84]">{candidate.symbol} · {candidate.exchange || "Exchange unavailable"} · {candidate.securityType || "Type unavailable"}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </fieldset>
+                  ) : null}
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <label className="text-xs font-semibold text-[#5F7C84]">Ticker
                       <input value={holding.ticker} onChange={(event) => onChange(holding.id, "ticker", event.target.value.toUpperCase())} placeholder="VTI" className="mt-1 w-full rounded-lg border px-3 py-2 text-sm font-semibold uppercase focus:ring-2 focus:ring-[#F16953]" />
@@ -362,6 +396,9 @@ export default function PlannerTest() {
   const [processing, setProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState("");
   const [importAttempt, setImportAttempt] = useState(null);
+  const [importDetails, setImportDetails] = useState({});
+  const [assistFile, setAssistFile] = useState(null);
+  const [assistError, setAssistError] = useState("");
   const [replaceTarget, setReplaceTarget] = useState("");
   const [totalValue, setTotalValue] = useState("");
   const [analysisStarted, setAnalysisStarted] = useState(false);
@@ -455,6 +492,7 @@ export default function PlannerTest() {
     const nextWarnings = [];
     const nextBrokerMessages = [];
     const parsedSources = [];
+    const parsedDetails = {};
     let requiresReview = false;
     try {
       for (let index = 0; index < unique.length; index += 1) {
@@ -471,6 +509,7 @@ export default function PlannerTest() {
         nextWarnings.push(...parsed.warnings);
         nextBrokerMessages.push(parsed.brokerMessage);
         parsedSources.push(parsed.source);
+        parsedDetails[currentUploadKey] = parsed.details;
         requiresReview = requiresReview || parsed.requiresReview;
       }
       const merged = mergeHoldings(nextHoldings);
@@ -478,6 +517,7 @@ export default function PlannerTest() {
       setHoldings(merged);
       setWarnings(nextWarnings);
       setBrokerMessages(nextBrokerMessages);
+      setImportDetails((current) => ({ ...current, ...parsedDetails }));
       if (parsedSources.length) {
         const brokers = [...new Set(parsedSources.map((source) => source.broker))];
         const brokerConfidence = parsedSources.every((source) => source.brokerConfidence === "high")
@@ -537,6 +577,11 @@ export default function PlannerTest() {
     const nextFiles = files.filter((file) => uploadKey(file) !== key);
     setFiles(nextFiles);
     setHoldings(nextHoldings);
+    setImportDetails((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
     const nextTotal = nextHoldings.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
     setTotalValue(nextTotal > 0 ? nextTotal.toFixed(2) : "");
     if (!nextFiles.length) {
@@ -564,7 +609,16 @@ export default function PlannerTest() {
   function updateHolding(id, field, value) {
     setHoldings((current) => current.map((holding) => {
       if (holding.id !== id) return holding;
-      const next = { ...holding, [field]: value, confidence: field === "confidence" ? value : "high" };
+      const identityChanged = field === "ticker" || field === "name";
+      const next = {
+        ...holding,
+        [field]: value,
+        confidence: field === "confidence" ? value : "high",
+        userConfirmed: true,
+        ...(identityChanged ? {
+          verification: { status: "unresolved", evidence: ["You corrected this identity field; no additional metadata was inferred."] },
+        } : {}),
+      };
       if (field === "category") next.assetClass = value;
       if (field === "ticker") next.symbol = value;
       if (field === "category" && value !== "Needs review") {
@@ -577,9 +631,67 @@ export default function PlannerTest() {
 
   function confirmHolding(id) {
     setHoldings((current) => current.map((holding) => holding.id === id
-      ? { ...holding, confidence: "high", warnings: [] }
+      ? { ...holding, confidence: "high", warnings: [], userConfirmed: true }
       : holding));
     markDataChanged();
+  }
+
+  function selectCandidate(id, candidate) {
+    setHoldings((current) => current.map((holding) => holding.id === id
+      ? {
+          ...holding,
+          ticker: candidate.symbol || holding.ticker,
+          symbol: candidate.symbol || holding.ticker,
+          name: candidate.name || holding.name,
+          category: candidate.category === "Other" ? "Needs review" : candidate.category,
+          assetClass: candidate.category === "Other" ? "Needs review" : candidate.category,
+          confidence: "high",
+          userConfirmed: true,
+          verification: {
+            status: "verified",
+            instrument: candidate,
+            confidence: 1,
+            evidence: ["You selected this candidate after reviewing its name, exchange, and type."],
+          },
+          warnings: (holding.warnings || []).filter((item) => !["ambiguous-security", "unresolved-security", "unknown-classification"].includes(item.code)),
+        }
+      : holding));
+    markDataChanged();
+  }
+
+  async function runDocumentAssist() {
+    if (!assistFile) return;
+    setProcessing(true);
+    setAssistError("");
+    setProcessingLabel(`Processing ${assistFile.name} with document assist…`);
+    try {
+      const parsed = await reprocessWithDocumentAssist(assistFile);
+      const key = uploadKey(assistFile);
+      const retained = holdings.filter((holding) => holding.uploadKey !== key);
+      const next = mergeHoldings([...retained, ...parsed.holdings.map((holding) => ({ ...holding, uploadKey: key }))]);
+      setFiles((current) => current.some((file) => uploadKey(file) === key) ? current : [...current, assistFile]);
+      setHoldings(next);
+      setWarnings(parsed.warnings);
+      setBrokerMessages([parsed.brokerMessage]);
+      setImportDetails((current) => ({ ...current, [key]: parsed.details }));
+      setSourceInfo(parsed.source);
+      setTotalValue(next.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0).toFixed(2));
+      setImportAttempt({
+        files: [assistFile],
+        names: [assistFile.name],
+        types: [parsed.file.detectedType],
+        status: "partial",
+        code: "",
+        replaceKey: "",
+      });
+      setAssistFile(null);
+      markDataChanged();
+    } catch (caught) {
+      setAssistError(normalizePortfolioImportError(caught, "DOCUMENT-ASSIST-01").userMessage);
+    } finally {
+      setProcessing(false);
+      setProcessingLabel("");
+    }
   }
 
   function addHolding() {
@@ -628,14 +740,14 @@ export default function PlannerTest() {
       <div className="container py-10">
         <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">
           <h2 id="upload-heading" className="text-2xl font-bold">1. Upload portfolio data</h2>
-          <p className="mt-2 text-sm leading-6 text-[#5F7C84]">Files are processed in your browser. Raw financial documents are not sent to a third-party AI API.</p>
+          <p className="mt-2 text-sm leading-6 text-[#5F7C84]">Local PDF, CSV, text, and OCR processing runs first. Optional document assist sends only the normalized page you approve to a server-side extraction service.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
             <div>
               <UploadChoice
                 id="portfolio-screenshots"
                 title="Upload Screenshots"
-                description="PNG, JPG/JPEG, or WEBP. Select multiple screenshots when your holdings span more than one screen."
-                accept="image/png,image/jpeg,image/webp"
+                description="PNG, JPG/JPEG, WEBP, or HEIC when your browser can decode it. Select multiple screenshots when holdings span more than one screen."
+                accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif"
                 icon={ImageIcon}
                 multiple
                 disabled={processing}
@@ -682,12 +794,19 @@ export default function PlannerTest() {
                   const key = uploadKey(file);
                   const linkedHoldings = holdings.filter((holding) => holding.uploadKey === key);
                   const needsReview = linkedHoldings.some((holding) => holdingReviewState(holding).status !== "Ready");
+                  const details = importDetails[key];
+                  const truthfulStatus = !linkedHoldings.length
+                    ? "Could not read positions — manual review needed"
+                    : needsReview
+                      ? "Imported with items to confirm"
+                      : "Imported — ready to review";
                   return (
-                    <article key={key} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-3 py-3">
+                    <article key={key} className="rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-3 py-3">
+                      <div className="flex min-w-0 items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#365e60]">{file.name}</p>
                         <p className="mt-0.5 text-xs text-[#5F7C84]">
-                          {(file.name.split(".").pop() || file.type || "File").toUpperCase()} · {linkedHoldings.length} holding{linkedHoldings.length === 1 ? "" : "s"} · {needsReview ? "Review needed" : "Imported"}
+                          {truthfulStatus}
                         </p>
                       </div>
                       <div className="flex flex-none">
@@ -698,9 +817,43 @@ export default function PlannerTest() {
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
+                      </div>
+                      <details className="mt-2 border-t border-[#73a7a5]/20 pt-2 text-xs text-[#5F7C84]">
+                        <summary className="cursor-pointer font-semibold text-[#365e60]">Import details</summary>
+                        <p className="mt-2">Method: {details?.method || "Local extraction"}</p>
+                        <p>Provider: {sourceInfo.brokerConfidence === "low" ? "Not confirmed" : sourceInfo.broker}</p>
+                        <p>Verified: {details?.verified ?? linkedHoldings.filter((holding) => holding.verification?.status === "verified").length} · To confirm: {details?.unresolved ?? linkedHoldings.filter((holding) => holding.verification?.status !== "verified").length}</p>
+                        {details?.assistEligible ? (
+                          <button
+                            type="button"
+                            onClick={() => { setAssistError(""); setAssistFile(file); }}
+                            className="mt-2 min-h-11 rounded-lg border border-[#73a7a5] bg-white px-3 py-2 font-semibold text-[#365e60] focus-visible:ring-2 focus-visible:ring-[#F16953]"
+                          >
+                            Reprocess with document assist
+                          </button>
+                        ) : null}
+                      </details>
                     </article>
                   );
                 })}
+              </div>
+            </div>
+          ) : null}
+          {assistFile ? (
+            <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950" role="dialog" aria-labelledby="assist-title">
+              <h3 id="assist-title" className="font-bold">Use document assist for {assistFile.name}?</h3>
+              <p className="mt-2 leading-6">
+                The first normalized page will be sent securely to a server-side multimodal extraction service. It will transcribe visible position fields only; it will not choose investments, categories, or advice. Account details may still be visible in the page, so continue only if you agree.
+              </p>
+              <p className="mt-2 text-xs">The request is not stored by the model API. You can continue with manual review without using this feature.</p>
+              {assistError ? <p className="mt-3 rounded-lg bg-red-100 p-2 font-semibold text-red-900" role="alert">{assistError}</p> : null}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button type="button" onClick={runDocumentAssist} disabled={processing} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
+                  I agree — process this page
+                </Button>
+                <Button type="button" variant="outline" onClick={() => { setAssistFile(null); setAssistError(""); }} disabled={processing} className="min-h-11">
+                  Continue with manual review
+                </Button>
               </div>
             </div>
           ) : null}
@@ -730,6 +883,17 @@ export default function PlannerTest() {
                     Retry import
                   </Button>
                 ) : null}
+                {importAttempt?.files?.some((file) => /^(image\/|application\/pdf)/.test(file.type)) ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAssistFile(importAttempt.files.find((file) => /^(image\/|application\/pdf)/.test(file.type)))}
+                    disabled={processing}
+                  >
+                    Try document assist
+                  </Button>
+                ) : null}
                 <Button type="button" variant="outline" size="sm" onClick={addHolding}>
                   Add holding manually
                 </Button>
@@ -751,6 +915,7 @@ export default function PlannerTest() {
             portfolioTotal={confirmedTotal}
             onChange={updateHolding}
             onConfirm={confirmHolding}
+            onCandidate={selectCandidate}
             onRemove={(id) => {
               const nextHoldings = holdings.filter((holding) => holding.id !== id);
               setHoldings(nextHoldings);
