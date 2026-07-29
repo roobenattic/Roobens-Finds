@@ -3,10 +3,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
+  BadgeCheck,
+  BrainCircuit,
   CheckCircle2,
   ChevronDown,
+  FileDown,
   FileSpreadsheet,
   FileText,
+  FolderUp,
   Image as ImageIcon,
   Plus,
   RefreshCw,
@@ -55,6 +59,12 @@ import {
 
 const CATEGORIES = ["Growth", "Income", "Real Estate", "Bonds", "Cash", "Other", "Needs review"];
 const COLORS = ["#F16953", "#73a7a5", "#FECFA5", "#58708f", "#9bd1cd", "#a78b7b"];
+const WORKFLOW_STAGES = [
+  { label: "Portfolio files", detail: "Your screenshots or statements", icon: FolderUp },
+  { label: "AI organizes", detail: "Likely holdings are grouped", icon: BrainCircuit },
+  { label: "You confirm", detail: "Only uncertain details need you", icon: BadgeCheck },
+  { label: "Diagnosis PDF", detail: "A clear, educational summary", icon: FileDown },
+];
 
 const emptyHolding = () => ({
   id: globalThis.crypto?.randomUUID?.() || `holding-${Date.now()}`,
@@ -96,22 +106,56 @@ function FieldLabel({ children, htmlFor }) {
   return <label htmlFor={htmlFor} className="mb-2 block text-sm font-semibold text-[#24364c]">{children}</label>;
 }
 
-function UploadChoice({ id, title, description, accept, icon: Icon, multiple, onChange, disabled }) {
+function WorkflowVisual() {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className="relative mt-10 max-w-4xl" aria-label="How portfolio diagnosis works">
+      <div className="absolute left-[10%] right-[10%] top-7 hidden h-px bg-gradient-to-r from-[#73a7a5]/30 via-[#F16953]/80 to-[#FECFA5]/40 sm:block" aria-hidden="true">
+        <motion.span
+          className="absolute -top-1.5 h-3 w-3 rounded-full bg-[#FECFA5] shadow-[0_0_18px_rgba(254,207,165,.9)]"
+          initial={reduceMotion ? { left: "50%" } : { left: "0%" }}
+          animate={reduceMotion ? undefined : { left: ["0%", "98%"] }}
+          transition={reduceMotion ? undefined : { duration: 3.2, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.6 }}
+        />
+      </div>
+      <div className="relative grid grid-cols-4 gap-2">
+        {WORKFLOW_STAGES.map(({ label, detail, icon: Icon }, index) => (
+          <motion.div
+            key={label}
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { delay: index * 0.15, duration: 0.45 }}
+            className="flex min-w-0 flex-col items-center text-center"
+          >
+            <span className="relative z-10 grid h-14 w-14 place-items-center rounded-full border border-white/15 bg-[#122338] text-[#FECFA5] shadow-lg shadow-black/20">
+              <Icon className="h-6 w-6" aria-hidden="true" />
+            </span>
+            <span className="mt-3 text-xs font-bold text-white sm:text-sm">{label}</span>
+            <span className="mt-1 hidden max-w-36 text-xs leading-5 text-slate-400 sm:block">{detail}</span>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ImportMethod({ id, title, description, action, accept, icon: Icon, multiple, onChange, disabled }) {
   return (
     <label
       htmlFor={id}
-      className={`group flex min-h-36 cursor-pointer flex-col justify-between rounded-3xl border-2 border-dashed border-[#73a7a5]/45 bg-white p-5 transition focus-within:ring-2 focus-within:ring-[#F16953] hover:-translate-y-1 hover:border-[#F16953] hover:shadow-lg ${disabled ? "pointer-events-none opacity-50" : ""}`}
+      className={`group flex cursor-pointer items-center gap-4 rounded-2xl border border-[#495E79]/15 bg-white p-4 text-left transition focus-within:ring-2 focus-within:ring-[#F16953] hover:border-[#F16953]/60 hover:shadow-md sm:p-5 ${disabled ? "pointer-events-none opacity-50" : ""}`}
     >
-      <div>
-        <span className="inline-grid h-11 w-11 place-items-center rounded-2xl bg-[#73a7a5]/10 text-[#496f70]">
-          <Icon className="h-5 w-5" />
-        </span>
-        <h3 className="mt-4 text-lg font-bold text-[#24364c]">{title}</h3>
-        <p className="mt-2 text-sm leading-6 text-[#5F7C84]">{description}</p>
-      </div>
-      <span className="mt-3 inline-flex items-center text-sm font-semibold text-[#F16953]">
-        Choose {multiple ? "images" : "a file"} <ArrowRight className="ml-1 h-4 w-4" />
+      <span className="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-[#73a7a5]/10 text-[#496f70]">
+        <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-bold text-[#24364c]">{title}</h3>
+        <p className="mt-1 text-sm leading-5 text-[#5F7C84]">{description}</p>
+        <span className="mt-2 inline-flex items-center text-sm font-semibold text-[#F16953]">
+          {action} <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+        </span>
+      </div>
       <input id={id} type="file" className="sr-only" accept={accept} multiple={multiple} onChange={onChange} disabled={disabled} />
     </label>
   );
@@ -153,10 +197,14 @@ function HoldingsTable({
   const [activeTab, setActiveTab] = useState("attention");
   const [expandedRowId, setExpandedRowId] = useState(null);
   const [visibleCount, setVisibleCount] = useState(8);
-  const rows = useMemo(() => holdings.map((holding) => ({
-    holding,
-    state: holdingReviewState(holding),
-  })), [holdings]);
+  const rows = useMemo(() => {
+    const priority = (row) => row.state.needsEditing ? 0 : row.state.needsConfirmation ? 1 : 2;
+    return holdings.map((holding, index) => ({
+      holding,
+      index,
+      state: holdingReviewState(holding),
+    })).sort((left, right) => priority(left) - priority(right) || left.index - right.index);
+  }, [holdings]);
   const attentionRows = rows.filter(({ state }) => state.status !== "Ready");
   const readyRows = rows.filter(({ state }) => state.status === "Ready");
   const filteredRows = activeTab === "attention" ? attentionRows : activeTab === "ready" ? readyRows : rows;
@@ -536,11 +584,11 @@ export default function PlannerTest() {
     try {
       for (let index = 0; index < unique.length; index += 1) {
         const file = unique[index];
-        setProcessingLabel(`Reading ${file.name} (${index + 1} of ${unique.length})…`);
+        setProcessingLabel(`Organizing ${file.name} (${index + 1} of ${unique.length})…`);
         const parsed = await parsePortfolioFile(file, {
-          onProgress: ({ status, progress }) => {
+          onProgress: ({ progress }) => {
             const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
-            setProcessingLabel(`${status || "Reading screenshot"} ${percent}% — ${file.name}`);
+            setProcessingLabel(`Organizing screenshot ${percent}% — ${file.name}`);
           },
         });
         const currentUploadKey = uploadKey(file);
@@ -754,14 +802,10 @@ export default function PlannerTest() {
           <span className="text-sm font-semibold uppercase tracking-[.2em] text-[#FECFA5]">Private by design • No brokerage login</span>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight md:text-6xl">Free Portfolio Diagnosis</h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            Upload, review, and confirm your holdings before receiving an explainable
-            educational diagnosis and personalized PDF.
+            Turn the portfolio files you already have into an organized, explainable
+            diagnosis—without connecting your brokerage account.
           </p>
-          <ol className="mt-8 grid gap-2 text-xs sm:grid-cols-4" aria-label="Planner steps">
-            {["Upload", "Review", "Set plan", "Diagnosis"].map((step, index) => (
-              <li key={step} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3"><span className="mr-2 text-[#F16953]">{index + 1}</span>{step}</li>
-            ))}
-          </ol>
+          <WorkflowVisual />
         </div>
       </section> : null}
 
@@ -793,32 +837,42 @@ export default function PlannerTest() {
 
       <div className="container py-10">
         {activeStep === "upload" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">
-          <h2 id="upload-heading" className="text-2xl font-bold">1. Upload portfolio data</h2>
-          <p className="mt-2 text-sm leading-6 text-[#5F7C84]">Files are processed in your browser. Raw financial documents are not sent to a third-party AI API.</p>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div>
-              <UploadChoice
+          <div className="mx-auto max-w-3xl">
+            <span className="text-xs font-semibold uppercase tracking-[.16em] text-[#F16953]">Start here</span>
+            <h2 id="upload-heading" className="mt-2 text-3xl font-bold">Upload your portfolio</h2>
+            <p className="mt-2 text-sm leading-6 text-[#5F7C84]">
+              Choose whichever format is easiest. We’ll organize the holdings, then ask you to check only the details that look uncertain.
+            </p>
+            <div className="mt-6 rounded-3xl border border-[#73a7a5]/25 bg-[#f4f8f7] p-3 sm:p-5">
+              <p className="mb-3 px-1 text-sm font-semibold text-[#365e60]">How would you like to import?</p>
+              <div className="grid gap-3">
+                <ImportMethod
                 id="portfolio-screenshots"
-                title="Upload Screenshots"
-                description="PNG, JPG/JPEG, or WEBP. Select multiple screenshots when your holdings span more than one screen."
+                title="Screenshot import"
+                description="Use one or more clear screenshots from your brokerage app."
+                action="Choose screenshots"
                 accept="image/png,image/jpeg,image/webp"
                 icon={ImageIcon}
                 multiple
                 disabled={processing}
                 onChange={(event) => processSelectedFiles(Array.from(event.target.files || []))}
               />
-            </div>
-            <div>
-              <UploadChoice
+                <ImportMethod
                 id="portfolio-files"
-                title="Upload Portfolio File"
-                description="PDF, CSV, or TXT. Text-based PDFs are read first; scanned pages use limited in-browser OCR."
+                title="PDF, CSV, or TXT import"
+                description="Use a statement, spreadsheet export, or saved text file."
+                action="Choose a file"
                 accept="application/pdf,text/csv,.csv,.txt"
                 icon={FileSpreadsheet}
                 disabled={processing}
                 onChange={(event) => processSelectedFiles(Array.from(event.target.files || []))}
               />
+              </div>
             </div>
+            <p className="mt-4 flex items-center gap-2 text-xs leading-5 text-[#5F7C84]">
+              <ShieldCheck className="h-4 w-4 flex-none text-[#73a7a5]" aria-hidden="true" />
+              Your files stay in this browser while we organize them.
+            </p>
           </div>
           <input
             id="replace-portfolio-file"
@@ -828,7 +882,12 @@ export default function PlannerTest() {
             onChange={(event) => processSelectedFiles(Array.from(event.target.files || []), { replaceKey: replaceTarget })}
             disabled={processing}
           />
-          <p className="mt-4 break-all text-xs text-[#5F7C84]">Limits: {FILE_LIMITS.maxFiles} files, 10 MB each, first {FILE_LIMITS.maxPdfPages} PDF pages. Accepted types: {ACCEPTED_TYPES}.</p>
+          <details className="mx-auto mt-4 max-w-3xl text-xs text-[#5F7C84]">
+            <summary className="cursor-pointer font-semibold">File guidelines</summary>
+            <p className="mt-2 leading-5">
+              Add up to {FILE_LIMITS.maxFiles} files, no more than 10 MB each. For longer PDFs, we’ll start with the first {FILE_LIMITS.maxPdfPages} pages.
+            </p>
+          </details>
           {processing ? <div className="mt-5 rounded-2xl bg-[#eef2f3] p-4 text-sm font-semibold" role="status">{processingLabel}</div> : null}
           {importAttempt ? (
             <div className="mt-4 rounded-xl border border-[#495E79]/10 bg-slate-50 px-4 py-3 text-sm text-[#495E79]" aria-live="polite">
@@ -836,7 +895,13 @@ export default function PlannerTest() {
                 {importAttempt.names.join(", ")} <span className="font-normal">({importAttempt.types.join(", ")})</span>
               </p>
               <p className="mt-1 text-xs capitalize">
-                Status: {importAttempt.status === "partial" ? "Partial import — review required" : importAttempt.status}
+                {importAttempt.status === "processing"
+                  ? "Organizing your portfolio…"
+                  : importAttempt.status === "partial"
+                    ? "Ready for you to check"
+                    : importAttempt.status === "complete"
+                      ? "Import complete"
+                      : "Import needs another try"}
               </p>
             </div>
           ) : null}
@@ -911,17 +976,22 @@ export default function PlannerTest() {
         {activeStep === "review" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="review-heading">
           <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
-              <h2 id="review-heading" className="text-2xl font-bold">2. Review and correct holdings</h2>
+              <h2 id="review-heading" className="text-2xl font-bold">Review and confirm holdings</h2>
               <p className="mt-2 text-sm text-[#5F7C84]">Complete rows stay compact. Only uncertain or incomplete details need your attention.</p>
             </div>
             <span className="text-sm font-semibold text-[#5F7C84]">{holdings.length} row{holdings.length === 1 ? "" : "s"}</span>
           </div>
           <div className="mb-5 rounded-2xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 p-4 text-sm leading-6 text-[#365e60]" aria-live="polite">
             <p className="font-semibold">
-              We processed {files.length} file{files.length === 1 ? "" : "s"} and found {holdings.length} likely holding{holdings.length === 1 ? "" : "s"}.
+              We organized {files.length} file{files.length === 1 ? "" : "s"} and found {holdings.length} likely holding{holdings.length === 1 ? "" : "s"}.
               {" "}{readiness.editingRows + readiness.confirmationRows} need review.
             </p>
-            {groupedBrokerMessages.length ? <p className="mt-1">{groupedBrokerMessages.join(" ")}</p> : null}
+            {groupedBrokerMessages.length ? (
+              <details className="mt-2">
+                <summary className="cursor-pointer font-semibold">About this import</summary>
+                <p className="mt-1">{groupedBrokerMessages.join(" ")}</p>
+              </details>
+            ) : null}
             {groupedWarnings.length ? (
               <details className="mt-2">
                 <summary className="cursor-pointer font-semibold">{groupedWarnings.length} import note{groupedWarnings.length === 1 ? "" : "s"}</summary>
@@ -1040,7 +1110,7 @@ export default function PlannerTest() {
         </section> : null}
 
         {activeStep === "plan" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="plan-heading">
-          <h2 id="plan-heading" className="text-2xl font-bold">3. Set your plan</h2>
+          <h2 id="plan-heading" className="text-2xl font-bold">Set your plan</h2>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <FieldLabel htmlFor="goal">Goal</FieldLabel>
