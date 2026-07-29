@@ -226,9 +226,12 @@ async function ocrImage(source: File | Blob, options: ParseOptions = {}) {
 function parsedTextHoldings(
   text: string,
   sourceRef: string,
-  recognizedBroker = false,
+  broker: { recognized: boolean; id: string } = { recognized: false, id: "generic" },
 ): { holdings: DraftHolding[]; recovered: boolean; unrecognized: UnrecognizedInformation[] } {
-  const parsed = parsePortfolioText(text, 0, { recognizedBroker });
+  const parsed = parsePortfolioText(text, 0, {
+    recognizedBroker: broker.recognized,
+    brokerId: broker.id,
+  });
   const holdings = parsed.holdings.map((holding: DraftHolding) => {
     const category = holding.category === "Other" ? "Needs review" : holding.category;
     const warnings = Array.isArray(holding.warnings) ? [...holding.warnings] : [];
@@ -385,7 +388,10 @@ async function parsePdf(file: File, options: ParseOptions = {}): Promise<ParseRe
   }
   if (!text.trim()) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
   const detection = detectBroker({ text, fileName: file.name });
-  const parsed = parsedTextHoldings(text, `${detection.label} PDF`, detection.confidence !== "low");
+  const parsed = parsedTextHoldings(text, `${detection.label} PDF`, {
+    recognized: detection.confidence !== "low",
+    id: detection.id,
+  });
   if (!parsed.holdings.length && !parsed.unrecognized.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
   if (parsed.recovered) {
     warnings.push(warning("partial-import", "Some PDF fields need manual confirmation.", "Review every yellow row before analyzing."));
@@ -410,13 +416,16 @@ export async function parsePortfolioFile(file: File, options: ParseOptions = {})
     const text = await ocrImage(file, options);
     if (!text.trim()) throw importError("OCR-RECOGNIZE-01", { kind: "recognition" });
     const detection = detectBroker({ text, fileName: file.name });
-    const parsed = parsedTextHoldings(text, `${detection.label} screenshot`, detection.confidence !== "low");
+    const parsed = parsedTextHoldings(text, `${detection.label} screenshot`, {
+      recognized: detection.confidence !== "low",
+      id: detection.id,
+    });
     if (!parsed.holdings.length && !parsed.unrecognized.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
     const warnings = [
-      warning("ocr-review", "Image text was read with OCR and may be uncertain.", "Review every detected row."),
+      warning("ocr-review", "We organized the text from your screenshot.", "Check only the rows marked for review."),
     ];
     if (parsed.recovered) {
-      warnings.push(warning("partial-import", "Some screenshot fields need manual confirmation.", "Complete every yellow row before analyzing."));
+      warnings.push(warning("partial-import", "A few details could not be matched confidently.", "Use the guided review to confirm them."));
     }
     return {
       holdings: parsed.holdings,
@@ -433,7 +442,10 @@ export async function parsePortfolioFile(file: File, options: ParseOptions = {})
     const text = await readBlobText(file);
     if (!text.trim()) throw importError("FILE-EMPTY-01", { kind: "empty-file", retryable: false });
     const detection = detectBroker({ text, fileName: file.name });
-    const parsed = parsedTextHoldings(text, `${detection.label} text import`, detection.confidence !== "low");
+    const parsed = parsedTextHoldings(text, `${detection.label} text import`, {
+      recognized: detection.confidence !== "low",
+      id: detection.id,
+    });
     if (!parsed.holdings.length && !parsed.unrecognized.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
     const warnings = parsed.recovered
       ? [warning("partial-import", "Some text fields need manual confirmation.", "Complete every yellow row before analyzing.")]

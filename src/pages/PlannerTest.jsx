@@ -57,7 +57,15 @@ import {
   uploadKey,
 } from "../../lib/portfolioReview.js";
 
-const CATEGORIES = ["Growth", "Income", "Real Estate", "Bonds", "Cash", "Other", "Needs review"];
+const CATEGORY_OPTIONS = [
+  { value: "Growth", description: "stocks or funds focused on long-term growth" },
+  { value: "Income", description: "dividend or income-paying investments" },
+  { value: "Real Estate", description: "REITs and property-focused funds" },
+  { value: "Bonds", description: "bond, Treasury, or fixed-income funds" },
+  { value: "Cash", description: "cash and money-market holdings" },
+  { value: "Other", description: "an investment that does not fit the groups above" },
+  { value: "Needs review", description: "we still need enough information to suggest a type" },
+];
 const COLORS = ["#F16953", "#73a7a5", "#FECFA5", "#58708f", "#9bd1cd", "#a78b7b"];
 const WORKFLOW_STAGES = [
   { label: "Portfolio files", detail: "Your screenshots or statements", icon: FolderUp },
@@ -106,12 +114,12 @@ function FieldLabel({ children, htmlFor }) {
   return <label htmlFor={htmlFor} className="mb-2 block text-sm font-semibold text-[#24364c]">{children}</label>;
 }
 
-function WorkflowVisual() {
+function WorkflowVisual({ compact = false }) {
   const reduceMotion = useReducedMotion();
 
   return (
-    <div className="relative mt-10 max-w-4xl" aria-label="How portfolio diagnosis works">
-      <div className="absolute left-[10%] right-[10%] top-7 hidden h-px bg-gradient-to-r from-[#73a7a5]/30 via-[#F16953]/80 to-[#FECFA5]/40 sm:block" aria-hidden="true">
+    <div className={`relative ${compact ? "max-w-none rounded-2xl bg-[#081423] px-4 py-4" : "mt-10 max-w-4xl"}`} aria-label="How portfolio diagnosis works">
+      <div className={`absolute left-[10%] right-[10%] hidden h-px bg-gradient-to-r from-[#73a7a5]/30 via-[#F16953]/80 to-[#FECFA5]/40 sm:block ${compact ? "top-9" : "top-7"}`} aria-hidden="true">
         <motion.span
           className="absolute -top-1.5 h-3 w-3 rounded-full bg-[#FECFA5] shadow-[0_0_18px_rgba(254,207,165,.9)]"
           initial={reduceMotion ? { left: "50%" } : { left: "0%" }}
@@ -128,11 +136,11 @@ function WorkflowVisual() {
             transition={reduceMotion ? undefined : { delay: index * 0.15, duration: 0.45 }}
             className="flex min-w-0 flex-col items-center text-center"
           >
-            <span className="relative z-10 grid h-14 w-14 place-items-center rounded-full border border-white/15 bg-[#122338] text-[#FECFA5] shadow-lg shadow-black/20">
-              <Icon className="h-6 w-6" aria-hidden="true" />
+            <span className={`relative z-10 grid place-items-center rounded-full border border-white/15 bg-[#122338] text-[#FECFA5] shadow-lg shadow-black/20 ${compact ? "h-10 w-10" : "h-14 w-14"}`}>
+              <Icon className={compact ? "h-4 w-4" : "h-6 w-6"} aria-hidden="true" />
             </span>
-            <span className="mt-3 text-xs font-bold text-white sm:text-sm">{label}</span>
-            <span className="mt-1 hidden max-w-36 text-xs leading-5 text-slate-400 sm:block">{detail}</span>
+            <span className={`${compact ? "mt-2 text-[11px]" : "mt-3 text-xs sm:text-sm"} font-bold text-white`}>{label}</span>
+            {!compact ? <span className="mt-1 hidden max-w-36 text-xs leading-5 text-slate-400 sm:block">{detail}</span> : null}
           </motion.div>
         ))}
       </div>
@@ -307,10 +315,15 @@ function HoldingsTable({
                     <label className="text-xs font-semibold text-[#5F7C84]">Market value
                       <input type="number" min="0" step="0.01" value={holding.marketValue ?? ""} onChange={(event) => onChange(holding.id, "marketValue", event.target.value === "" ? null : Number(event.target.value))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
                     </label>
-                    <label className="text-xs font-semibold text-[#5F7C84]">Category
+                    <label className="text-xs font-semibold text-[#5F7C84]">What kind of investment is this?
                       <select value={holding.category} onChange={(event) => onChange(holding.id, "category", event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]">
-                        {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
+                        {CATEGORY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.value} — {option.description}</option>
+                        ))}
                       </select>
+                      <span className="mt-1 block font-normal leading-5">
+                        {CATEGORY_OPTIONS.find((option) => option.value === holding.category)?.description}
+                      </span>
                     </label>
                     <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-[#5F7C84]">
                       Allocation is calculated automatically from market value.
@@ -834,6 +847,12 @@ export default function PlannerTest() {
           </nav>
         </div>
       </div>
+
+      {workflowStarted ? (
+        <div className="container pt-5">
+          <WorkflowVisual compact />
+        </div>
+      ) : null}
 
       <div className="container py-10">
         {activeStep === "upload" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">

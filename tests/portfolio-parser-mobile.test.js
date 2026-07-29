@@ -92,6 +92,31 @@ test("unknown symbols require both a plausible name and numeric position evidenc
   assert.equal(isolated.holdings.length, 0);
 });
 
+test("Fidelity statement rows use ticker parentheses and ending market value columns", async () => {
+  const result = parsePortfolioText(
+    await fixture("fidelity-statement-ocr.txt"),
+    0,
+    { recognizedBroker: true, brokerId: "fidelity" },
+  );
+  assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
+    "SPAXX", "FTHI", "QQQ", "DGRO", "JEPQ", "SPYD", "SCHD", "VXUS",
+    "VEA", "VYM", "VTI", "DHS", "AGI", "MAIN", "DLR",
+  ]);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "QQQ").marketValue, 668.65);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "JEPQ").marketValue, 10.81);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "VXUS").marketValue, 212.1);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "AGI").marketValue, 155.49);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "MAIN").marketValue, 74.34);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "DLR").marketValue, 274.03);
+  assert.ok(result.holdings.every((holding) => holding.name));
+  assert.ok(result.holdings.every((holding) => holding.percent === null));
+  assert.ok(result.holdings.every((holding) => holding.confidence === "high"));
+  assert.deepEqual(result.unrecognized, []);
+  for (const falseTicker of ["FIRST", "TRUST", "GOLD", "COM", "NPV", "CL"]) {
+    assert.ok(!result.holdings.some((holding) => holding.ticker === falseTicker));
+  }
+});
+
 function holdingIssue(holding) {
   return holding.warnings[0]?.code;
 }
