@@ -1,0 +1,5 @@
+POSITIONS
+Security                         Symbol    Shares    Market Value
+North Harbor Index Fund          NHIF      12.500    $1,250.00
+Lakeview Income Fund             LVIF       8.000      $800.00
+ACCOUNT TOTAL                                        $2,050.00
