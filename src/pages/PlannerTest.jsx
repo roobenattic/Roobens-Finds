@@ -3,10 +3,14 @@ import { motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   ArrowRight,
+  BadgeCheck,
+  BrainCircuit,
   CheckCircle2,
   ChevronDown,
+  FileDown,
   FileSpreadsheet,
   FileText,
+  FolderUp,
   Image as ImageIcon,
   Plus,
   RefreshCw,
@@ -47,14 +51,29 @@ import { analyzeSnapshot, buildScenario, buildSnapshot } from "../../lib/portfol
 import {
   allocationForHolding,
   buildPortfolioReadiness,
+  dedupeWarnings,
   getImportErrorGuidance,
   getPlanGuidance,
   holdingReviewState,
   uploadKey,
 } from "../../lib/portfolioReview.js";
 
-const CATEGORIES = ["Growth", "Income", "Real Estate", "Bonds", "Cash", "Other", "Needs review"];
+const CATEGORY_OPTIONS = [
+  { value: "Growth", description: "stocks or funds focused on long-term growth" },
+  { value: "Income", description: "dividend or income-paying investments" },
+  { value: "Real Estate", description: "REITs and property-focused funds" },
+  { value: "Bonds", description: "bond, Treasury, or fixed-income funds" },
+  { value: "Cash", description: "cash and money-market holdings" },
+  { value: "Other", description: "an investment that does not fit the groups above" },
+  { value: "Needs review", description: "we still need enough information to suggest a type" },
+];
 const COLORS = ["#F16953", "#73a7a5", "#FECFA5", "#58708f", "#9bd1cd", "#a78b7b"];
+const WORKFLOW_STAGES = [
+  { label: "Portfolio files", detail: "Your screenshots or statements", icon: FolderUp },
+  { label: "AI organizes", detail: "Likely holdings are grouped", icon: BrainCircuit },
+  { label: "You confirm", detail: "Only uncertain details need you", icon: BadgeCheck },
+  { label: "Diagnosis PDF", detail: "A clear, educational summary", icon: FileDown },
+];
 
 const emptyHolding = () => ({
   id: globalThis.crypto?.randomUUID?.() || `holding-${Date.now()}`,
@@ -82,26 +101,70 @@ const money = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
 });
 
+function removeUploadSource(holdings, key) {
+  return holdings.flatMap((holding) => {
+    const sources = [...new Set([...(holding.uploadKeys || []), holding.uploadKey].filter(Boolean))];
+    if (!sources.includes(key)) return [holding];
+    const remainingSources = sources.filter((source) => source !== key);
+    if (!remainingSources.length) return [];
+    return [{ ...holding, uploadKey: remainingSources[0], uploadKeys: remainingSources }];
+  });
+}
+
 function FieldLabel({ children, htmlFor }) {
   return <label htmlFor={htmlFor} className="mb-2 block text-sm font-semibold text-[#24364c]">{children}</label>;
 }
 
-function UploadChoice({ id, title, description, accept, icon: Icon, multiple, onChange, disabled }) {
+function WorkflowVisual({ compact = false }) {
+  const reduceMotion = useReducedMotion();
+
+  return (
+    <div className={`relative ${compact ? "max-w-none rounded-2xl bg-[#081423] px-4 py-4" : "mt-10 max-w-4xl"}`} aria-label="How portfolio diagnosis works">
+      <div className={`absolute left-[10%] right-[10%] hidden h-px bg-gradient-to-r from-[#73a7a5]/30 via-[#F16953]/80 to-[#FECFA5]/40 sm:block ${compact ? "top-9" : "top-7"}`} aria-hidden="true">
+        <motion.span
+          className="absolute -top-1.5 h-3 w-3 rounded-full bg-[#FECFA5] shadow-[0_0_18px_rgba(254,207,165,.9)]"
+          initial={reduceMotion ? { left: "50%" } : { left: "0%" }}
+          animate={reduceMotion ? undefined : { left: ["0%", "98%"] }}
+          transition={reduceMotion ? undefined : { duration: 3.2, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.6 }}
+        />
+      </div>
+      <div className="relative grid grid-cols-4 gap-2">
+        {WORKFLOW_STAGES.map(({ label, detail, icon: Icon }, index) => (
+          <motion.div
+            key={label}
+            initial={reduceMotion ? false : { opacity: 0, y: 12 }}
+            animate={reduceMotion ? undefined : { opacity: 1, y: 0 }}
+            transition={reduceMotion ? undefined : { delay: index * 0.15, duration: 0.45 }}
+            className="flex min-w-0 flex-col items-center text-center"
+          >
+            <span className={`relative z-10 grid place-items-center rounded-full border border-white/15 bg-[#122338] text-[#FECFA5] shadow-lg shadow-black/20 ${compact ? "h-10 w-10" : "h-14 w-14"}`}>
+              <Icon className={compact ? "h-4 w-4" : "h-6 w-6"} aria-hidden="true" />
+            </span>
+            <span className={`${compact ? "mt-2 text-[11px]" : "mt-3 text-xs sm:text-sm"} font-bold text-white`}>{label}</span>
+            {!compact ? <span className="mt-1 hidden max-w-36 text-xs leading-5 text-slate-400 sm:block">{detail}</span> : null}
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ImportMethod({ id, title, description, action, accept, icon: Icon, multiple, onChange, disabled }) {
   return (
     <label
       htmlFor={id}
-      className={`group flex min-h-36 cursor-pointer flex-col justify-between rounded-3xl border-2 border-dashed border-[#73a7a5]/45 bg-white p-5 transition focus-within:ring-2 focus-within:ring-[#F16953] hover:-translate-y-1 hover:border-[#F16953] hover:shadow-lg ${disabled ? "pointer-events-none opacity-50" : ""}`}
+      className={`group flex cursor-pointer items-center gap-4 rounded-2xl border border-[#495E79]/15 bg-white p-4 text-left transition focus-within:ring-2 focus-within:ring-[#F16953] hover:border-[#F16953]/60 hover:shadow-md sm:p-5 ${disabled ? "pointer-events-none opacity-50" : ""}`}
     >
-      <div>
-        <span className="inline-grid h-11 w-11 place-items-center rounded-2xl bg-[#73a7a5]/10 text-[#496f70]">
-          <Icon className="h-5 w-5" />
-        </span>
-        <h3 className="mt-4 text-lg font-bold text-[#24364c]">{title}</h3>
-        <p className="mt-2 text-sm leading-6 text-[#5F7C84]">{description}</p>
-      </div>
-      <span className="mt-3 inline-flex items-center text-sm font-semibold text-[#F16953]">
-        Choose {multiple ? "images" : "a file"} <ArrowRight className="ml-1 h-4 w-4" />
+      <span className="grid h-12 w-12 flex-none place-items-center rounded-2xl bg-[#73a7a5]/10 text-[#496f70]">
+        <Icon className="h-5 w-5" aria-hidden="true" />
       </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="font-bold text-[#24364c]">{title}</h3>
+        <p className="mt-1 text-sm leading-5 text-[#5F7C84]">{description}</p>
+        <span className="mt-2 inline-flex items-center text-sm font-semibold text-[#F16953]">
+          {action} <ArrowRight className="ml-1 h-4 w-4" aria-hidden="true" />
+        </span>
+      </div>
       <input id={id} type="file" className="sr-only" accept={accept} multiple={multiple} onChange={onChange} disabled={disabled} />
     </label>
   );
@@ -130,38 +193,76 @@ function StatusBadge({ state }) {
   return <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${tone}`}>{state.status}</span>;
 }
 
-function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandidate, onRemove, onAdd }) {
-  const [expandedRows, setExpandedRows] = useState(() => new Set());
+function HoldingsTable({
+  holdings,
+  portfolioTotal,
+  onChange,
+  onConfirm,
+  onCandidate,
+  onConfirmAll,
+  onRemove,
+  onAdd,
+  onReturnToUpload,
+}) {
+  const [activeTab, setActiveTab] = useState("attention");
+  const [expandedRowId, setExpandedRowId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const rows = useMemo(() => {
+    const priority = (row) => row.state.needsEditing ? 0 : row.state.needsConfirmation ? 1 : 2;
+    return holdings.map((holding, index) => ({
+      holding,
+      index,
+      state: holdingReviewState(holding),
+    })).sort((left, right) => priority(left) - priority(right) || left.index - right.index);
+  }, [holdings]);
+  const attentionRows = rows.filter(({ state }) => state.status !== "Ready");
+  const readyRows = rows.filter(({ state }) => state.status === "Ready");
+  const filteredRows = activeTab === "attention" ? attentionRows : activeTab === "ready" ? readyRows : rows;
+  const visibleRows = filteredRows.slice(0, visibleCount);
 
   useEffect(() => {
-    setExpandedRows((current) => {
-      const next = new Set(current);
-      let changed = false;
-      for (const holding of holdings) {
-        if (holdingReviewState(holding).needsEditing && !next.has(holding.id)) {
-          next.add(holding.id);
-          changed = true;
-        }
-      }
-      return changed ? next : current;
-    });
-  }, [holdings]);
+    if (expandedRowId && !holdings.some((holding) => holding.id === expandedRowId)) {
+      setExpandedRowId(null);
+    }
+  }, [expandedRowId, holdings]);
 
-  function toggleRow(id) {
-    setExpandedRows((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  useEffect(() => {
+    if (activeTab === "attention" && rows.length > 0 && attentionRows.length === 0) {
+      setActiveTab("all");
+    }
+  }, [activeTab, attentionRows.length, rows.length]);
+
+  function selectTab(tab) {
+    setActiveTab(tab);
+    setExpandedRowId(null);
+    setVisibleCount(8);
   }
 
   return (
     <div>
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Holding review filters">
+        {[
+          ["attention", "Needs attention", attentionRows.length],
+          ["ready", "Ready", readyRows.length],
+          ["all", "All holdings", rows.length],
+        ].map(([value, label, count]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === value}
+            onClick={() => selectTab(value)}
+            className={`min-h-11 rounded-full px-4 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-[#F16953] ${
+              activeTab === value ? "bg-[#24364c] text-white" : "border border-slate-200 bg-white text-[#495E79]"
+            }`}
+          >
+            {label} ({count})
+          </button>
+        ))}
+      </div>
       <div className="overflow-hidden rounded-2xl border border-[#495E79]/10 bg-white">
-        {holdings.length ? holdings.map((holding, index) => {
-          const state = holdingReviewState(holding);
-          const expanded = expandedRows.has(holding.id);
+        {visibleRows.length ? visibleRows.map(({ holding, state }, index) => {
+          const expanded = expandedRowId === holding.id;
           const allocation = allocationForHolding(holding, portfolioTotal);
           return (
             <article key={holding.id} className={`border-t border-[#495E79]/10 first:border-t-0 ${state.needsEditing ? "bg-red-50/30" : state.needsConfirmation ? "bg-amber-50/30" : ""}`}>
@@ -169,15 +270,18 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandid
                 <div className="min-w-0">
                   <p className="truncate font-bold text-[#24364c]">{holding.ticker || `Holding ${index + 1}`}</p>
                   <p className="truncate text-xs text-[#5F7C84]">{holding.name || "Name not available"}</p>
+                  <p className={`mt-1 text-xs font-semibold ${state.status === "Ready" ? "text-emerald-700" : "text-amber-800"}`}>
+                    {state.exactIssue}
+                  </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => toggleRow(holding.id)}
+                  onClick={() => setExpandedRowId(expanded ? null : holding.id)}
                   className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-[#495E79] hover:border-[#73a7a5] focus-visible:ring-2 focus-visible:ring-[#F16953] sm:order-last"
                   aria-expanded={expanded}
                   aria-controls={`holding-details-${holding.id}`}
                 >
-                  {expanded ? "Close" : "Edit"}
+                  {expanded ? "Close" : state.needsConfirmation ? "Review" : "Edit"}
                   <ChevronDown className={`h-4 w-4 transition ${expanded ? "rotate-180" : ""}`} />
                 </button>
                 <p className="text-sm font-semibold text-[#24364c] max-sm:order-3">
@@ -188,7 +292,10 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandid
                   <span className="block text-[10px] uppercase tracking-wide text-[#5F7C84] sm:hidden">Allocation</span>
                   {allocation > 0 ? `${allocation.toFixed(1)}%` : "—"}
                 </p>
-                <div className="max-sm:order-5"><ConfidenceBadge confidence={holding.confidence} /></div>
+                <div className="max-sm:order-5">
+                  <ConfidenceBadge confidence={holding.confidence} />
+                  <span className="sr-only">{holding.confidenceReason || `${holding.confidence} confidence extraction`}</span>
+                </div>
                 <div className="max-sm:order-6"><StatusBadge state={state} /></div>
               </div>
 
@@ -199,10 +306,10 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandid
                       {holding.verification?.status === "verified"
                         ? `Verified by ${holding.verification.instrument.source}: ${holding.verification.instrument.name} · ${holding.verification.instrument.exchange || "exchange unavailable"} · ${holding.verification.instrument.securityType || "type unavailable"}`
                         : holding.verification?.status === "ambiguous"
-                          ? `The image reads ${holding.ticker || "an unclear ticker"}; more than one possible security matched.`
+                          ? `The document reads ${holding.ticker || "an unclear ticker"}; more than one possible security matched.`
                           : `Needs review — we could not verify ${holding.ticker || "this security"} yet.`}
                     </p>
-                    <p className="mt-1">{holding.verification?.evidence?.join(" ") || "No independent verification evidence is available."}</p>
+                    <p className="mt-1">{holding.verification?.evidence?.join(" ") || holding.confidenceReason || "No independent verification evidence is available."}</p>
                     <details className="mt-2">
                       <summary className="cursor-pointer font-semibold">Where this row came from</summary>
                       <p className="mt-1">{holding.sourceRef || "Imported document"}{holding.evidence?.symbol?.page ? ` · page ${holding.evidence.symbol.page}` : ""}</p>
@@ -240,10 +347,15 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandid
                     <label className="text-xs font-semibold text-[#5F7C84]">Market value
                       <input type="number" min="0" step="0.01" value={holding.marketValue ?? ""} onChange={(event) => onChange(holding.id, "marketValue", event.target.value === "" ? null : Number(event.target.value))} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]" />
                     </label>
-                    <label className="text-xs font-semibold text-[#5F7C84]">Category
+                    <label className="text-xs font-semibold text-[#5F7C84]">What kind of investment is this?
                       <select value={holding.category} onChange={(event) => onChange(holding.id, "category", event.target.value)} className="mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-[#F16953]">
-                        {CATEGORIES.map((category) => <option key={category}>{category}</option>)}
+                        {CATEGORY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.value} — {option.description}</option>
+                        ))}
                       </select>
+                      <span className="mt-1 block font-normal leading-5">
+                        {CATEGORY_OPTIONS.find((option) => option.value === holding.category)?.description}
+                      </span>
                     </label>
                     <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-[#5F7C84]">
                       Allocation is calculated automatically from market value.
@@ -251,10 +363,10 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandid
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                     <button type="button" onClick={() => onRemove(holding.id)} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500">
-                      <Trash2 className="h-4 w-4" /> Remove holding
+                      <Trash2 className="h-4 w-4" /> Remove false holding
                     </button>
                     {state.needsConfirmation ? (
-                      <Button type="button" size="sm" onClick={() => { onConfirm(holding.id); toggleRow(holding.id); }} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
+                      <Button type="button" size="sm" onClick={() => { onConfirm(holding.id); setExpandedRowId(null); }} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm details
                       </Button>
                     ) : null}
@@ -264,10 +376,23 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onCandid
             </article>
           );
         }) : (
-          <div className="px-4 py-8 text-center text-sm text-[#5F7C84]">Uploaded holdings will appear here in a compact review list.</div>
+          <div className="px-4 py-8 text-center text-sm text-[#5F7C84]">
+            {holdings.length ? `No holdings in the ${activeTab === "attention" ? "Needs attention" : "Ready"} view.` : "Uploaded holdings will appear here."}
+          </div>
         )}
       </div>
-      <Button id="add-holding-button" type="button" variant="outline" onClick={onAdd} className="mt-4"><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
+      {filteredRows.length > visibleCount ? (
+        <Button type="button" variant="outline" onClick={() => setVisibleCount((count) => count + 8)} className="mt-4">
+          Show 8 more
+        </Button>
+      ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button id="add-holding-button" type="button" variant="outline" onClick={onAdd}><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
+        {attentionRows.some(({ state }) => state.needsConfirmation) ? (
+          <Button type="button" variant="outline" onClick={onConfirmAll}><CheckCircle2 className="mr-2 h-4 w-4" /> Confirm all ready holdings</Button>
+        ) : null}
+        <Button type="button" variant="ghost" onClick={onReturnToUpload}>Return to upload</Button>
+      </div>
     </div>
   );
 }
@@ -381,8 +506,10 @@ function DiagnosisDashboard({ diagnosis, onDownload }) {
 }
 
 export default function PlannerTest() {
+  const [activeStep, setActiveStep] = useState("upload");
   const [files, setFiles] = useState([]);
   const [holdings, setHoldings] = useState([]);
+  const [unrecognized, setUnrecognized] = useState([]);
   const [warnings, setWarnings] = useState([]);
   const [brokerMessages, setBrokerMessages] = useState([]);
   const [sourceInfo, setSourceInfo] = useState({
@@ -401,6 +528,7 @@ export default function PlannerTest() {
   const [assistError, setAssistError] = useState("");
   const [replaceTarget, setReplaceTarget] = useState("");
   const [totalValue, setTotalValue] = useState("");
+  const [reviewConsent, setReviewConsent] = useState(false);
   const [analysisStarted, setAnalysisStarted] = useState(false);
   const [strategy, setStrategy] = useState("balanced");
   const [goal, setGoal] = useState("long-term-growth");
@@ -424,8 +552,12 @@ export default function PlannerTest() {
   const readiness = useMemo(() => buildPortfolioReadiness({
     holdings,
     portfolioTotal: confirmedTotal,
-    reviewed: false,
-  }), [holdings, confirmedTotal]);
+    filesProcessed: files.length,
+    unrecognizedCount: unrecognized.length,
+    consent: reviewConsent,
+  }), [holdings, confirmedTotal, files.length, reviewConsent, unrecognized.length]);
+  const groupedWarnings = useMemo(() => dedupeWarnings(warnings), [warnings]);
+  const groupedBrokerMessages = useMemo(() => [...new Set(brokerMessages)], [brokerMessages]);
   const planGuidance = getPlanGuidance({ goal, strategy, timelineYears });
 
   const snapshot = useMemo(() => {
@@ -455,6 +587,7 @@ export default function PlannerTest() {
 
   function markDataChanged() {
     setAnalysisStarted(false);
+    setReviewConsent(false);
     setError(null);
   }
 
@@ -487,8 +620,11 @@ export default function PlannerTest() {
       replaceKey,
     });
     const nextHoldings = replaceKey
-      ? holdings.filter((holding) => holding.uploadKey !== replaceKey)
+      ? removeUploadSource(holdings, replaceKey)
       : [...holdings];
+    const nextUnrecognized = replaceKey
+      ? unrecognized.filter((item) => item.uploadKey !== replaceKey)
+      : [...unrecognized];
     const nextWarnings = [];
     const nextBrokerMessages = [];
     const parsedSources = [];
@@ -497,15 +633,20 @@ export default function PlannerTest() {
     try {
       for (let index = 0; index < unique.length; index += 1) {
         const file = unique[index];
-        setProcessingLabel(`Reading ${file.name} (${index + 1} of ${unique.length})…`);
+        setProcessingLabel(`Organizing ${file.name} (${index + 1} of ${unique.length})…`);
         const parsed = await parsePortfolioFile(file, {
-          onProgress: ({ status, progress }) => {
+          onProgress: ({ progress }) => {
             const percent = Math.round(Math.max(0, Math.min(1, progress)) * 100);
-            setProcessingLabel(`${status || "Reading screenshot"} ${percent}% — ${file.name}`);
+            setProcessingLabel(`Organizing screenshot ${percent}% — ${file.name}`);
           },
         });
         const currentUploadKey = uploadKey(file);
-        nextHoldings.push(...parsed.holdings.map((holding) => ({ ...holding, uploadKey: currentUploadKey })));
+        nextHoldings.push(...parsed.holdings.map((holding) => ({
+          ...holding,
+          uploadKey: currentUploadKey,
+          uploadKeys: [currentUploadKey],
+        })));
+        nextUnrecognized.push(...parsed.unrecognized.map((item) => ({ ...item, uploadKey: currentUploadKey })));
         nextWarnings.push(...parsed.warnings);
         nextBrokerMessages.push(parsed.brokerMessage);
         parsedSources.push(parsed.source);
@@ -515,8 +656,9 @@ export default function PlannerTest() {
       const merged = mergeHoldings(nextHoldings);
       setFiles([...retainedFiles, ...unique]);
       setHoldings(merged);
-      setWarnings(nextWarnings);
-      setBrokerMessages(nextBrokerMessages);
+      setUnrecognized(nextUnrecognized);
+      setWarnings(dedupeWarnings(nextWarnings));
+      setBrokerMessages([...new Set(nextBrokerMessages)]);
       setImportDetails((current) => ({ ...current, ...parsedDetails }));
       if (parsedSources.length) {
         const brokers = [...new Set(parsedSources.map((source) => source.broker))];
@@ -547,9 +689,13 @@ export default function PlannerTest() {
         status: requiresReview ? "partial" : "complete",
       }));
       markDataChanged();
+      setActiveStep("review");
     } catch (caught) {
       const normalized = normalizePortfolioImportError(caught);
-      setError(getImportErrorGuidance(normalized));
+      setError({ ...getImportErrorGuidance(normalized), supportCode: normalized.code });
+      if (unique.length === 1 && ["NO-POSITIONS-01", "OCR-RECOGNIZE-01", "IMAGE-DECODE-01"].includes(normalized.code)) {
+        setAssistFile(unique[0]);
+      }
       setImportAttempt((current) => ({
         ...current,
         status: "failed",
@@ -573,10 +719,12 @@ export default function PlannerTest() {
   }
 
   function removeUpload(key) {
-    const nextHoldings = holdings.filter((holding) => holding.uploadKey !== key);
+    const nextHoldings = removeUploadSource(holdings, key);
+    const nextUnrecognized = unrecognized.filter((item) => item.uploadKey !== key);
     const nextFiles = files.filter((file) => uploadKey(file) !== key);
     setFiles(nextFiles);
     setHoldings(nextHoldings);
+    setUnrecognized(nextUnrecognized);
     setImportDetails((current) => {
       const next = { ...current };
       delete next[key];
@@ -609,21 +757,38 @@ export default function PlannerTest() {
   function updateHolding(id, field, value) {
     setHoldings((current) => current.map((holding) => {
       if (holding.id !== id) return holding;
+      const remainingWarnings = (holding.warnings || []).filter((item) => {
+        if (field === "ticker") return item.code !== "symbol-uncertain";
+        if (field === "marketValue") return !["market-value-missing", "calculated-market-value"].includes(item.code);
+        if (field === "category") return !["category-unknown", "unknown-classification"].includes(item.code);
+        return true;
+      });
       const identityChanged = field === "ticker" || field === "name";
       const next = {
         ...holding,
         [field]: value,
-        confidence: field === "confidence" ? value : "high",
+        confidence: field === "confidence" ? value : "medium",
         userConfirmed: true,
+        confidenceReason: field === "confidence"
+          ? holding.confidenceReason
+          : "You corrected this holding. Confirm it once after reviewing the changes.",
+        warnings: field === "confidence"
+          ? remainingWarnings
+          : [...remainingWarnings.filter((item) => item.code !== "user-corrected"), {
+            code: "user-corrected",
+            message: "You corrected this holding.",
+            action: "Confirm the updated details.",
+             severity: "info",
+           }],
         ...(identityChanged ? {
-          verification: { status: "unresolved", evidence: ["You corrected this identity field; no additional metadata was inferred."] },
+          verification: {
+            status: "unresolved",
+            evidence: ["You corrected this identity field; no additional metadata was inferred."],
+          },
         } : {}),
       };
       if (field === "category") next.assetClass = value;
       if (field === "ticker") next.symbol = value;
-      if (field === "category" && value !== "Needs review") {
-        next.warnings = (next.warnings || []).filter((item) => item.code !== "unknown-classification");
-      }
       return next;
     }));
     markDataChanged();
@@ -633,6 +798,14 @@ export default function PlannerTest() {
     setHoldings((current) => current.map((holding) => holding.id === id
       ? { ...holding, confidence: "high", warnings: [], userConfirmed: true }
       : holding));
+    markDataChanged();
+  }
+
+  function confirmAllReadyHoldings() {
+    setHoldings((current) => current.map((holding) => {
+      const state = holdingReviewState(holding);
+      return state.needsConfirmation ? { ...holding, confidence: "high", warnings: [], userConfirmed: true } : holding;
+    }));
     markDataChanged();
   }
 
@@ -653,7 +826,9 @@ export default function PlannerTest() {
             confidence: 1,
             evidence: ["You selected this candidate after reviewing its name, exchange, and type."],
           },
-          warnings: (holding.warnings || []).filter((item) => !["ambiguous-security", "unresolved-security", "unknown-classification"].includes(item.code)),
+          warnings: (holding.warnings || []).filter((item) =>
+            !["ambiguous-security", "unresolved-security", "unknown-classification"].includes(item.code),
+          ),
         }
       : holding));
     markDataChanged();
@@ -667,15 +842,19 @@ export default function PlannerTest() {
     try {
       const parsed = await reprocessWithDocumentAssist(assistFile);
       const key = uploadKey(assistFile);
-      const retained = holdings.filter((holding) => holding.uploadKey !== key);
-      const next = mergeHoldings([...retained, ...parsed.holdings.map((holding) => ({ ...holding, uploadKey: key }))]);
+      const retained = removeUploadSource(holdings, key);
+      const next = mergeHoldings([
+        ...retained,
+        ...parsed.holdings.map((holding) => ({ ...holding, uploadKey: key, uploadKeys: [key] })),
+      ]);
       setFiles((current) => current.some((file) => uploadKey(file) === key) ? current : [...current, assistFile]);
       setHoldings(next);
       setWarnings(parsed.warnings);
       setBrokerMessages([parsed.brokerMessage]);
       setImportDetails((current) => ({ ...current, [key]: parsed.details }));
       setSourceInfo(parsed.source);
-      setTotalValue(next.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0).toFixed(2));
+      const nextTotal = next.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
+      setTotalValue(nextTotal > 0 ? nextTotal.toFixed(2) : "");
       setImportAttempt({
         files: [assistFile],
         names: [assistFile.name],
@@ -686,6 +865,7 @@ export default function PlannerTest() {
       });
       setAssistFile(null);
       markDataChanged();
+      setActiveStep("review");
     } catch (caught) {
       setAssistError(normalizePortfolioImportError(caught, "DOCUMENT-ASSIST-01").userMessage);
     } finally {
@@ -694,10 +874,32 @@ export default function PlannerTest() {
     }
   }
 
+  function clearAllUploads() {
+    setFiles([]);
+    setHoldings((current) => current.filter((holding) => !holding.uploadKey));
+    setUnrecognized([]);
+    setWarnings([]);
+    setBrokerMessages([]);
+    setImportDetails({});
+    setAssistFile(null);
+    setAssistError("");
+    setImportAttempt(null);
+    setTotalValue("");
+    setSourceInfo({
+      kind: "manual",
+      broker: "Generic import",
+      brokerConfidence: "low",
+      fileCount: 0,
+      label: "User-confirmed holdings",
+    });
+    markDataChanged();
+  }
+
   function addHolding() {
     const holding = emptyHolding();
     setHoldings((current) => [...current, holding]);
     markDataChanged();
+    setActiveStep("review");
     requestAnimationFrame(() => {
       document.getElementById("review-heading")?.scrollIntoView({ behavior: "smooth" });
       requestAnimationFrame(() => document.querySelector(`[id="holding-details-${holding.id}"] input`)?.focus());
@@ -715,56 +917,103 @@ export default function PlannerTest() {
     }
     setError(null);
     setAnalysisStarted(true);
+    setActiveStep("diagnosis");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     requestAnimationFrame(() => document.getElementById("diagnosis-results")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" }));
   }
 
+  const workflowStarted = activeStep !== "upload" || files.length > 0 || holdings.length > 0 || unrecognized.length > 0;
+  const steps = [
+    { id: "upload", label: "Upload", available: true, complete: files.length > 0 || holdings.length > 0 },
+    { id: "review", label: "Review", available: holdings.length > 0 || unrecognized.length > 0, complete: readiness.ready },
+    { id: "plan", label: "Set plan", available: readiness.ready, complete: analysisStarted },
+    { id: "diagnosis", label: "Diagnosis", available: Boolean(diagnosis), complete: Boolean(diagnosis) },
+  ];
+
   return (
     <main className="min-h-screen bg-[#f7f4ef] pb-24 pt-16 text-[#24364c]">
-      <section className="bg-[#081423] py-14 text-white md:py-20">
+      {!workflowStarted ? <section className="bg-[#081423] py-14 text-white md:py-20">
         <div className="container">
           <span className="text-sm font-semibold uppercase tracking-[.2em] text-[#FECFA5]">Private by design • No brokerage login</span>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight md:text-6xl">Free Portfolio Diagnosis</h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
-            Upload, review, and confirm your holdings before receiving an explainable
-            educational diagnosis and personalized PDF.
+            Turn the portfolio files you already have into an organized, explainable
+            diagnosis—without connecting your brokerage account.
           </p>
-          <ol className="mt-8 grid gap-2 text-xs sm:grid-cols-3 lg:grid-cols-6" aria-label="Planner steps">
-            {["Upload", "Review holdings", "Set plan", "Analyze", "Preview diagnosis", "Generate PDF"].map((step, index) => (
-              <li key={step} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3"><span className="mr-2 text-[#F16953]">{index + 1}</span>{step}</li>
-            ))}
-          </ol>
+          <WorkflowVisual />
         </div>
-      </section>
+      </section> : null}
+
+      <div className="sticky top-16 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="container py-3">
+          {workflowStarted ? <p className="mb-2 text-sm font-bold text-[#24364c]">Free Portfolio Diagnosis</p> : null}
+          <nav className="grid grid-cols-4 gap-1" aria-label="Portfolio diagnosis progress">
+            {steps.map((step, index) => {
+              const active = activeStep === step.id;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  disabled={!step.available}
+                  onClick={() => setActiveStep(step.id)}
+                  aria-current={active ? "step" : undefined}
+                  title={!step.available ? (step.id === "review" ? "Upload a file or add a holding first." : step.id === "plan" ? "Finish and confirm the portfolio review first." : "Analyze the portfolio first.") : undefined}
+                  className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition focus-visible:ring-2 focus-visible:ring-[#F16953] sm:text-sm ${
+                    active ? "bg-[#24364c] text-white" : step.complete ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-[#5F7C84]"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  <span className="mr-1">{step.complete ? "✓" : index + 1}.</span>{step.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {workflowStarted ? (
+        <div className="container pt-5">
+          <WorkflowVisual compact />
+        </div>
+      ) : null}
 
       <div className="container py-10">
-        <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">
-          <h2 id="upload-heading" className="text-2xl font-bold">1. Upload portfolio data</h2>
-          <p className="mt-2 text-sm leading-6 text-[#5F7C84]">Local PDF, CSV, text, and OCR processing runs first. Optional document assist sends only the normalized page you approve to a server-side extraction service.</p>
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            <div>
-              <UploadChoice
+        {activeStep === "upload" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">
+          <div className="mx-auto max-w-3xl">
+            <span className="text-xs font-semibold uppercase tracking-[.16em] text-[#F16953]">Start here</span>
+            <h2 id="upload-heading" className="mt-2 text-3xl font-bold">Upload your portfolio</h2>
+            <p className="mt-2 text-sm leading-6 text-[#5F7C84]">
+              Choose whichever format is easiest. We’ll organize the holdings, then ask you to check only the details that look uncertain.
+            </p>
+            <div className="mt-6 rounded-3xl border border-[#73a7a5]/25 bg-[#f4f8f7] p-3 sm:p-5">
+              <p className="mb-3 px-1 text-sm font-semibold text-[#365e60]">How would you like to import?</p>
+              <div className="grid gap-3">
+                <ImportMethod
                 id="portfolio-screenshots"
-                title="Upload Screenshots"
-                description="PNG, JPG/JPEG, WEBP, or HEIC when your browser can decode it. Select multiple screenshots when holdings span more than one screen."
+                title="Screenshot import"
+                description="Use one or more clear PNG, JPG, WEBP, or HEIC screenshots from your brokerage app."
+                action="Choose screenshots"
                 accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif"
                 icon={ImageIcon}
                 multiple
                 disabled={processing}
                 onChange={(event) => processSelectedFiles(Array.from(event.target.files || []))}
               />
-            </div>
-            <div>
-              <UploadChoice
+                <ImportMethod
                 id="portfolio-files"
-                title="Upload Portfolio File"
-                description="PDF, CSV, or TXT. Text-based PDFs are read first; scanned pages use limited in-browser OCR."
+                title="PDF, CSV, or TXT import"
+                description="Use a statement, spreadsheet export, or saved text file."
+                action="Choose a file"
                 accept="application/pdf,text/csv,.csv,.txt"
                 icon={FileSpreadsheet}
                 disabled={processing}
                 onChange={(event) => processSelectedFiles(Array.from(event.target.files || []))}
               />
+              </div>
             </div>
+            <p className="mt-4 flex items-center gap-2 text-xs leading-5 text-[#5F7C84]">
+              <ShieldCheck className="h-4 w-4 flex-none text-[#73a7a5]" aria-hidden="true" />
+              Your files stay in this browser while we organize them.
+            </p>
           </div>
           <input
             id="replace-portfolio-file"
@@ -774,7 +1023,12 @@ export default function PlannerTest() {
             onChange={(event) => processSelectedFiles(Array.from(event.target.files || []), { replaceKey: replaceTarget })}
             disabled={processing}
           />
-          <p className="mt-4 break-all text-xs text-[#5F7C84]">Limits: {FILE_LIMITS.maxFiles} files, 10 MB each, first {FILE_LIMITS.maxPdfPages} PDF pages. Accepted types: {ACCEPTED_TYPES}.</p>
+          <details className="mx-auto mt-4 max-w-3xl text-xs text-[#5F7C84]">
+            <summary className="cursor-pointer font-semibold">File guidelines</summary>
+            <p className="mt-2 leading-5">
+              Add up to {FILE_LIMITS.maxFiles} files, no more than 10 MB each. For longer PDFs, we’ll start with the first {FILE_LIMITS.maxPdfPages} pages.
+            </p>
+          </details>
           {processing ? <div className="mt-5 rounded-2xl bg-[#eef2f3] p-4 text-sm font-semibold" role="status">{processingLabel}</div> : null}
           {importAttempt ? (
             <div className="mt-4 rounded-xl border border-[#495E79]/10 bg-slate-50 px-4 py-3 text-sm text-[#495E79]" aria-live="polite">
@@ -782,17 +1036,25 @@ export default function PlannerTest() {
                 {importAttempt.names.join(", ")} <span className="font-normal">({importAttempt.types.join(", ")})</span>
               </p>
               <p className="mt-1 text-xs capitalize">
-                Status: {importAttempt.status === "partial" ? "Partial import — review required" : importAttempt.status}
+                {importAttempt.status === "processing"
+                  ? "Organizing your portfolio…"
+                  : importAttempt.status === "partial"
+                    ? "Ready for you to check"
+                    : importAttempt.status === "complete"
+                      ? "Import complete"
+                      : "Import needs another try"}
               </p>
             </div>
           ) : null}
           {files.length ? (
-            <div className="mt-5" aria-label="Uploaded items">
-              <h3 className="text-sm font-bold text-[#24364c]">Uploaded items</h3>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <details className="mt-5 rounded-2xl border border-[#495E79]/10 bg-slate-50 p-4" aria-label="Uploaded items">
+              <summary className="cursor-pointer text-sm font-bold text-[#24364c]">Uploaded items ({files.length})</summary>
+              <div className="mt-3 grid gap-2">
                 {files.map((file) => {
                   const key = uploadKey(file);
-                  const linkedHoldings = holdings.filter((holding) => holding.uploadKey === key);
+                  const linkedHoldings = holdings.filter((holding) =>
+                    (holding.uploadKeys || [holding.uploadKey]).includes(key),
+                  );
                   const needsReview = linkedHoldings.some((holding) => holdingReviewState(holding).status !== "Ready");
                   const details = importDetails[key];
                   const truthfulStatus = !linkedHoldings.length
@@ -801,8 +1063,7 @@ export default function PlannerTest() {
                       ? "Imported with items to confirm"
                       : "Imported — ready to review";
                   return (
-                    <article key={key} className="rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-3 py-3">
-                      <div className="flex min-w-0 items-center justify-between gap-3">
+                    <article key={key} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-3 py-3">
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#365e60]">{file.name}</p>
                         <p className="mt-0.5 text-xs text-[#5F7C84]">
@@ -810,68 +1071,32 @@ export default function PlannerTest() {
                         </p>
                       </div>
                       <div className="flex flex-none">
-                        <button type="button" onClick={() => replaceUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Replace ${file.name}`}>
+                        <button type="button" onClick={() => processSelectedFiles([file], { retry: true, replaceKey: key })} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Retry ${file.name}`}>
                           <RefreshCw className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => replaceUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Replace ${file.name}`}>
+                          <FileSpreadsheet className="h-4 w-4" />
                         </button>
                         <button type="button" onClick={() => removeUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500" aria-label={`Remove ${file.name}`}>
                           <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
-                      </div>
-                      <details className="mt-2 border-t border-[#73a7a5]/20 pt-2 text-xs text-[#5F7C84]">
-                        <summary className="cursor-pointer font-semibold text-[#365e60]">Import details</summary>
-                        <p className="mt-2">Method: {details?.method || "Local extraction"}</p>
-                        <p>Provider: {sourceInfo.brokerConfidence === "low" ? "Not confirmed" : sourceInfo.broker}</p>
-                        <p>Verified: {details?.verified ?? linkedHoldings.filter((holding) => holding.verification?.status === "verified").length} · To confirm: {details?.unresolved ?? linkedHoldings.filter((holding) => holding.verification?.status !== "verified").length}</p>
-                        {details?.assistEligible ? (
-                          <button
-                            type="button"
-                            onClick={() => { setAssistError(""); setAssistFile(file); }}
-                            className="mt-2 min-h-11 rounded-lg border border-[#73a7a5] bg-white px-3 py-2 font-semibold text-[#365e60] focus-visible:ring-2 focus-visible:ring-[#F16953]"
-                          >
-                            Reprocess with document assist
-                          </button>
-                        ) : null}
-                      </details>
+                      {details ? (
+                        <details className="mt-2 border-t border-[#73a7a5]/20 pt-2 text-xs text-[#5F7C84]">
+                          <summary className="cursor-pointer font-semibold">Import details</summary>
+                          <p className="mt-1">Method: {details.method}</p>
+                          <p>{details.verified} verified · {details.unresolved} need confirmation</p>
+                        </details>
+                      ) : null}
                     </article>
                   );
                 })}
               </div>
-            </div>
+              <Button type="button" variant="ghost" size="sm" onClick={clearAllUploads} disabled={processing} className="mt-3 text-red-700">
+                Clear all uploaded items
+              </Button>
+            </details>
           ) : null}
-          {assistFile ? (
-            <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950" role="dialog" aria-labelledby="assist-title">
-              <h3 id="assist-title" className="font-bold">Use document assist for {assistFile.name}?</h3>
-              <p className="mt-2 leading-6">
-                The first normalized page will be sent securely to a server-side multimodal extraction service. It will transcribe visible position fields only; it will not choose investments, categories, or advice. Account details may still be visible in the page, so continue only if you agree.
-              </p>
-              <p className="mt-2 text-xs">The request is not stored by the model API. You can continue with manual review without using this feature.</p>
-              {assistError ? <p className="mt-3 rounded-lg bg-red-100 p-2 font-semibold text-red-900" role="alert">{assistError}</p> : null}
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Button type="button" onClick={runDocumentAssist} disabled={processing} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
-                  I agree — process this page
-                </Button>
-                <Button type="button" variant="outline" onClick={() => { setAssistFile(null); setAssistError(""); }} disabled={processing} className="min-h-11">
-                  Continue with manual review
-                </Button>
-              </div>
-            </div>
-          ) : null}
-          {brokerMessages.length ? (
-            <div className="mt-4 grid gap-2" aria-live="polite">
-              {brokerMessages.map((message, index) => (
-                <p key={`${message}-${index}`} className="rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-4 py-3 text-sm text-[#365e60]">
-                  {message}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          {warnings.map((warning) => (
-            <p key={`${warning.code}-${warning.message}`} className="mt-3 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
-              <span><strong>{warning.message}</strong>{warning.action ? ` ${warning.action}` : ""}</span>
-            </p>
-          ))}
           {error ? (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
               <p className="text-sm font-bold">{error.title}</p>
@@ -883,32 +1108,73 @@ export default function PlannerTest() {
                     Retry import
                   </Button>
                 ) : null}
-                {importAttempt?.files?.some((file) => /^(image\/|application\/pdf)/.test(file.type)) ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAssistFile(importAttempt.files.find((file) => /^(image\/|application\/pdf)/.test(file.type)))}
-                    disabled={processing}
-                  >
-                    Try document assist
-                  </Button>
-                ) : null}
                 <Button type="button" variant="outline" size="sm" onClick={addHolding}>
                   Add holding manually
                 </Button>
               </div>
+              {error.supportCode ? (
+                <details className="mt-3 text-xs">
+                  <summary className="cursor-pointer font-semibold">Support details</summary>
+                  <p className="mt-1">Internal code: {error.supportCode}</p>
+                </details>
+              ) : null}
             </div>
           ) : null}
-        </section>
+          {assistFile ? (
+            <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <p className="font-bold">Optional document assist</p>
+              <p className="mt-1 leading-6">
+                Local reading could not recover enough position data. If you choose this option, one normalized page from
+                <strong> {assistFile.name}</strong> is sent securely to a server-side extraction service. Account numbers,
+                balances, and transactions are not requested, and the result still requires your review.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button type="button" size="sm" onClick={runDocumentAssist} disabled={processing} className="bg-[#24364c] hover:bg-[#172638]">
+                  Reprocess with document assist
+                </Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => { setAssistFile(null); setAssistError(""); }}>
+                  Continue manually
+                </Button>
+              </div>
+              {assistError ? <p className="mt-2 font-semibold text-red-800" role="alert">{assistError}</p> : null}
+            </div>
+          ) : null}
+          {holdings.length || unrecognized.length ? (
+            <Button type="button" onClick={() => setActiveStep("review")} className="mt-6 min-h-12 w-full bg-[#F16953] hover:bg-[#d95840]">
+              Continue to review <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : null}
+        </section> : null}
 
-        <section className="mt-8 rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="review-heading">
+        {activeStep === "review" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="review-heading">
           <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
-              <h2 id="review-heading" className="text-2xl font-bold">2. Review and correct holdings</h2>
+              <h2 id="review-heading" className="text-2xl font-bold">Review and confirm holdings</h2>
               <p className="mt-2 text-sm text-[#5F7C84]">Complete rows stay compact. Only uncertain or incomplete details need your attention.</p>
             </div>
             <span className="text-sm font-semibold text-[#5F7C84]">{holdings.length} row{holdings.length === 1 ? "" : "s"}</span>
+          </div>
+          <div className="mb-5 rounded-2xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 p-4 text-sm leading-6 text-[#365e60]" aria-live="polite">
+            <p className="font-semibold">
+              We organized {files.length} file{files.length === 1 ? "" : "s"} and found {holdings.length} likely holding{holdings.length === 1 ? "" : "s"}.
+              {" "}{readiness.editingRows + readiness.confirmationRows} need review.
+            </p>
+            {groupedBrokerMessages.length ? (
+              <details className="mt-2">
+                <summary className="cursor-pointer font-semibold">About this import</summary>
+                <p className="mt-1">{groupedBrokerMessages.join(" ")}</p>
+              </details>
+            ) : null}
+            {groupedWarnings.length ? (
+              <details className="mt-2">
+                <summary className="cursor-pointer font-semibold">{groupedWarnings.length} import note{groupedWarnings.length === 1 ? "" : "s"}</summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {groupedWarnings.map((warning) => (
+                    <li key={`${warning.code}-${warning.message}`}>{warning.message}{warning.action ? ` ${warning.action}` : ""}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
           </div>
           <HoldingsTable
             holdings={holdings}
@@ -916,6 +1182,8 @@ export default function PlannerTest() {
             onChange={updateHolding}
             onConfirm={confirmHolding}
             onCandidate={selectCandidate}
+            onConfirmAll={confirmAllReadyHoldings}
+            onReturnToUpload={() => setActiveStep("upload")}
             onRemove={(id) => {
               const nextHoldings = holdings.filter((holding) => holding.id !== id);
               setHoldings(nextHoldings);
@@ -925,6 +1193,26 @@ export default function PlannerTest() {
             }}
             onAdd={addHolding}
           />
+
+          {unrecognized.length ? (
+            <details className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <summary className="cursor-pointer font-semibold">
+                Additional statement text ignored ({unrecognized.length})
+              </summary>
+              <p className="mt-2 leading-6">These lines did not have enough position evidence, so they were not turned into holdings.</p>
+              <ul className="mt-3 max-h-52 space-y-2 overflow-auto">
+                {unrecognized.map((item) => (
+                  <li key={item.id} className="rounded-lg bg-white/70 px-3 py-2">
+                    <span className="font-semibold">{item.candidate || "Statement text"}:</span> {item.text}
+                    <span className="block text-xs text-amber-800">{item.reason}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setUnrecognized([])} className="mt-3 text-amber-950">
+                Remove all ignored text
+              </Button>
+            </details>
+          ) : null}
 
           <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
             <div>
@@ -955,15 +1243,48 @@ export default function PlannerTest() {
                   </li>
                 ))}
               </ul>
-              <p className={`mt-3 rounded-lg px-3 py-2 text-sm font-semibold ${readiness.ready ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>
-                {readiness.ready ? "Ready to analyze." : `Action needed: ${readiness.actions[0]}`}
-              </p>
+              {readiness.actions.length ? (
+                <div className="mt-3 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-950">
+                  <p className="font-semibold">Issues remaining: {readiness.actions.length}</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5">
+                    {readiness.actions.map((action) => <li key={action}>{action}</li>)}
+                  </ul>
+                </div>
+              ) : (
+                <p className="mt-3 rounded-lg bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-900">Holding data is complete.</p>
+              )}
             </div>
           </div>
-        </section>
+          <label className={`mt-6 flex min-h-12 items-start gap-3 rounded-2xl border p-4 text-sm ${readiness.consentEnabled ? "cursor-pointer border-[#73a7a5]/30 bg-white" : "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500"}`}>
+            <input
+              type="checkbox"
+              checked={reviewConsent}
+              disabled={!readiness.consentEnabled}
+              onChange={(event) => setReviewConsent(event.target.checked)}
+              className="mt-0.5 h-5 w-5 rounded border-slate-300 accent-[#F16953]"
+            />
+            <span>
+              <strong>I reviewed the holdings and confirm they represent my portfolio.</strong>
+              {!readiness.consentEnabled ? <span className="mt-1 block">Resolve the issues above before confirming.</span> : null}
+            </span>
+          </label>
+          <Button
+            type="button"
+            onClick={() => setActiveStep("plan")}
+            disabled={!readiness.ready}
+            className="mt-5 min-h-12 w-full bg-[#F16953] hover:bg-[#d95840] disabled:cursor-not-allowed"
+          >
+            {readiness.ready
+              ? "Continue to set plan"
+              : !readiness.dataReady
+                ? `Resolve: ${readiness.actions[0] || "Finish portfolio review"}`
+                : "Confirm the reviewed portfolio to continue"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </section> : null}
 
-        <section className="mt-8 rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="plan-heading">
-          <h2 id="plan-heading" className="text-2xl font-bold">3. Set your plan</h2>
+        {activeStep === "plan" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="plan-heading">
+          <h2 id="plan-heading" className="text-2xl font-bold">Set your plan</h2>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <FieldLabel htmlFor="goal">Goal</FieldLabel>
@@ -1013,17 +1334,21 @@ export default function PlannerTest() {
               <CheckCircle2 className="h-4 w-4" /> Your goal, strategy, and timeline are aligned.
             </p>
           )}
+          <Button type="button" variant="ghost" onClick={() => setActiveStep("review")} className="mt-5">
+            Back to portfolio review
+          </Button>
           <div className="sticky bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-20 mr-14 mt-7 rounded-2xl border border-white/60 bg-white/95 p-2 shadow-xl backdrop-blur md:static md:mr-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
             <Button onClick={analyze} disabled={!readiness.ready || processing} size="lg" className="min-h-12 w-full bg-[#F16953] text-base hover:bg-[#d95840] disabled:cursor-not-allowed">
-              {readiness.ready ? "Analyze My Portfolio" : `Next: ${readiness.actions[0] || "Add portfolio data"}`}
+              {readiness.ready ? "Analyze My Portfolio" : `Resolve: ${readiness.actions[0] || "Add portfolio data"}`}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
-        </section>
+        </section> : null}
 
-        <div id="diagnosis-results">
+        {activeStep === "diagnosis" ? <div id="diagnosis-results">
           {diagnosis && snapshot ? (
-            <div className="mt-8 space-y-8">
+            <div className="space-y-8">
+              <Button type="button" variant="ghost" onClick={() => setActiveStep("plan")}>Back to plan</Button>
               <ScenarioExplorer
                 strategy={strategy}
                 contributionAmount={monthlyContribution}
@@ -1037,9 +1362,9 @@ export default function PlannerTest() {
               <PremiumIntelligencePreview analysis={diagnosis} />
             </div>
           ) : analysisStarted ? (
-            <p className="mt-8 rounded-2xl bg-red-50 p-5 text-red-800" role="alert">The reviewed data could not produce a trustworthy diagnosis. Recheck the holdings and total.</p>
+            <p className="rounded-2xl bg-red-50 p-5 text-red-800" role="alert">We could not create a diagnosis from the reviewed data. Return to Review and check that each holding has a symbol or name and a market value.</p>
           ) : null}
-        </div>
+        </div> : null}
 
         <div className="mt-8 flex items-start gap-3 rounded-2xl border border-[#495E79]/10 bg-white p-5 text-sm leading-6 text-[#5F7C84]">
           <ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-[#73a7a5]" />

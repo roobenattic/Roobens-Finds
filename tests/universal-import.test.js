@@ -119,7 +119,5 @@ test("document assist accepts explicit nulls and rejects prose or unsupported sc
 
 test("OCR character confusion is not fuzzy-matched to a known security", () => {
   const result = parsePortfolioText("S8R\n$500.00");
-  assert.equal(result.holdings[0].ticker, "S8R");
-  assert.equal(result.holdings[0].verification.status, "unresolved");
-  assert.equal(result.holdings[0].category, "Needs review");
+  assert.equal(result.holdings.length, 0);
 });

@@ -42,26 +42,21 @@ test("headings never become ticker symbols", () => {
   }
 });
 
-test("partially corrupted but defensible ticker becomes a low-confidence review row", () => {
+test("digit-corrupted OCR symbols do not become holdings", () => {
   const result = parsePortfolioText("MSF7\n$2,100.00");
-  assert.equal(result.holdings.length, 1);
-  assert.equal(result.holdings[0].ticker, "MSF7");
-  assert.equal(result.holdings[0].confidence, "low");
-  assert.equal(result.recovered, true);
+  assert.equal(result.holdings.length, 0);
 });
 
-test("zero-complete-position recovery preserves a known ticker with null values", () => {
+test("a known ticker without numeric position evidence remains ignored text", () => {
   const result = parsePortfolioText("AAPL\nPosition unavailable");
-  assert.equal(result.holdings.length, 1);
-  assert.equal(result.holdings[0].marketValue, null);
-  assert.equal(result.holdings[0].percent, null);
-  assert.ok(result.holdings[0].warnings.some((item) => item.code === "incomplete-ocr-row"));
+  assert.equal(result.holdings.length, 0);
+  assert.equal(result.unrecognized[0].candidate, "AAPL");
 });
 
-test("manual corrections remain the source of truth for analysis", () => {
-  const imported = parsePortfolioText("AAPL\nPosition unavailable").holdings[0];
+test("manual holdings remain the source of truth for analysis", () => {
   const corrected = {
-    ...imported,
+    ticker: "AAPL",
+    name: "Apple Inc",
     marketValue: 2500,
     percent: 100,
     category: "Growth",
@@ -74,3 +69,56 @@ test("manual corrections remain the source of truth for analysis", () => {
   assert.equal(snapshot.holdings[0].marketValue, 2500);
   assert.equal(snapshot.holdings[0].weight, 100);
 });
+
+test("statement labels and OCR fragments never become fake holdings", () => {
+  const result = parsePortfolioText(`
+    ROOBENS DUME
+    FIDELITY INVESTMENTS
+    ONLINE BROKERAGE ACCOUNT
+    MARKET VALUE FUND DIGITAL PROVIDED
+    FAST LTE S68 S84
+    $79,000.00
+  `);
+  assert.deepEqual(result.holdings, []);
+});
+
+test("unknown symbols require both a plausible name and numeric position evidence", () => {
+  const defensible = parsePortfolioText("Acme Robotics ACME 10 shares $2,100.00");
+  assert.equal(defensible.holdings.length, 1);
+  assert.equal(defensible.holdings[0].confidence, "low");
+  assert.equal(holdingIssue(defensible.holdings[0]), "unverified-security");
+
+  const isolated = parsePortfolioText("ACME\n$2,100.00");
+  assert.equal(isolated.holdings.length, 0);
+});
+
+test("Fidelity statement rows use ticker parentheses and ending market value columns", async () => {
+  const result = parsePortfolioText(
+    await fixture("fidelity-statement-ocr.txt"),
+    0,
+    { recognizedBroker: true, brokerId: "fidelity" },
+  );
+  assert.deepEqual(result.holdings.map((holding) => holding.ticker), [
+    "SPAXX", "FTHI", "QQQ", "DGRO", "JEPQ", "SPYD", "SCHD", "VXUS",
+    "VEA", "VYM", "VTI", "DHS", "AGI", "MAIN", "DLR",
+  ]);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "QQQ").marketValue, 668.65);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "JEPQ").marketValue, 10.81);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "VXUS").marketValue, 212.1);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "AGI").marketValue, 155.49);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "MAIN").marketValue, 74.34);
+  assert.equal(result.holdings.find((holding) => holding.ticker === "DLR").marketValue, 274.03);
+  assert.ok(result.holdings.every((holding) => holding.name));
+  assert.ok(result.holdings.every((holding) => holding.percent === null));
+  assert.ok(result.holdings.every((holding) => holding.confidence === "low"));
+  assert.ok(result.holdings.every((holding) => holding.category === "Needs review"));
+  assert.ok(result.holdings.every((holding) => holding.verification.status === "unresolved"));
+  assert.deepEqual(result.unrecognized, []);
+  for (const falseTicker of ["FIRST", "TRUST", "GOLD", "COM", "NPV", "CL"]) {
+    assert.ok(!result.holdings.some((holding) => holding.ticker === falseTicker));
+  }
+});
+
+function holdingIssue(holding) {
+  return holding.warnings[0]?.code;
+}
