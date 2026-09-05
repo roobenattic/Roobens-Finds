@@ -22,6 +22,7 @@ Automated on pull requests and pushes to `main`:
 - Vulnerability and misconfiguration scanning with Trivy
 - Production dependency audit with npm
 - Weekly dependency update checks through Dependabot
+- Automated dependency remediation when a verified patched release is available and the change can be safely validated through CI
 
 ## Human approval gates
 
