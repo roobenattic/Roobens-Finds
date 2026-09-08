@@ -30,24 +30,25 @@ test("allocation is calculated from market values when a total is available", ()
 });
 
 test("readiness explains remaining work and becomes ready after uncertain data is confirmed", () => {
-  const empty = buildPortfolioReadiness({ holdings: [], portfolioTotal: 0, reviewed: false });
+  const empty = buildPortfolioReadiness({ holdings: [], portfolioTotal: 0, consent: false });
   assert.equal(empty.score, 0);
   assert.equal(empty.ready, false);
   const incomplete = buildPortfolioReadiness({
     holdings: [{ ...readyHolding, marketValue: null, percent: null }],
     portfolioTotal: 0,
-    reviewed: false,
+    consent: false,
   });
-  assert.equal(incomplete.score, 20);
+  assert.equal(incomplete.score, 40);
   assert.equal(incomplete.ready, false);
 
   const uncertain = { ...readyHolding, confidence: "low" };
-  const pending = buildPortfolioReadiness({ holdings: [uncertain], portfolioTotal: 8000, reviewed: false });
-  assert.equal(pending.score, 80);
+  const pending = buildPortfolioReadiness({ holdings: [uncertain], portfolioTotal: 8000, consent: false });
+  assert.equal(pending.score, 65);
   assert.equal(pending.ready, false);
-  assert.deepEqual(pending.actions, ["Confirm 1 uncertain holding."]);
+  assert.deepEqual(pending.actions, ["Confirm the extracted data for VTI."]);
+  assert.equal(pending.consentEnabled, false);
 
-  const confirmed = buildPortfolioReadiness({ holdings: [uncertain], portfolioTotal: 8000, reviewed: true });
+  const confirmed = buildPortfolioReadiness({ holdings: [readyHolding], portfolioTotal: 8000, consent: true });
   assert.equal(confirmed.score, 100);
   assert.equal(confirmed.ready, true);
 });
