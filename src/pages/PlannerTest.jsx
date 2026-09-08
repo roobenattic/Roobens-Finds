@@ -46,6 +46,7 @@ import { analyzeSnapshot, buildScenario, buildSnapshot } from "../../lib/portfol
 import {
   allocationForHolding,
   buildPortfolioReadiness,
+  dedupeWarnings,
   getImportErrorGuidance,
   getPlanGuidance,
   holdingReviewState,
@@ -80,6 +81,16 @@ const money = new Intl.NumberFormat("en-US", {
   currency: "USD",
   maximumFractionDigits: 0,
 });
+
+function removeUploadSource(holdings, key) {
+  return holdings.flatMap((holding) => {
+    const sources = [...new Set([...(holding.uploadKeys || []), holding.uploadKey].filter(Boolean))];
+    if (!sources.includes(key)) return [holding];
+    const remainingSources = sources.filter((source) => source !== key);
+    if (!remainingSources.length) return [];
+    return [{ ...holding, uploadKey: remainingSources[0], uploadKeys: remainingSources }];
+  });
+}
 
 function FieldLabel({ children, htmlFor }) {
   return <label htmlFor={htmlFor} className="mb-2 block text-sm font-semibold text-[#24364c]">{children}</label>;
@@ -129,38 +140,71 @@ function StatusBadge({ state }) {
   return <span className={`rounded-full px-2 py-1 text-[11px] font-semibold ${tone}`}>{state.status}</span>;
 }
 
-function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove, onAdd }) {
-  const [expandedRows, setExpandedRows] = useState(() => new Set());
+function HoldingsTable({
+  holdings,
+  portfolioTotal,
+  onChange,
+  onConfirm,
+  onConfirmAll,
+  onRemove,
+  onAdd,
+  onReturnToUpload,
+}) {
+  const [activeTab, setActiveTab] = useState("attention");
+  const [expandedRowId, setExpandedRowId] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const rows = useMemo(() => holdings.map((holding) => ({
+    holding,
+    state: holdingReviewState(holding),
+  })), [holdings]);
+  const attentionRows = rows.filter(({ state }) => state.status !== "Ready");
+  const readyRows = rows.filter(({ state }) => state.status === "Ready");
+  const filteredRows = activeTab === "attention" ? attentionRows : activeTab === "ready" ? readyRows : rows;
+  const visibleRows = filteredRows.slice(0, visibleCount);
 
   useEffect(() => {
-    setExpandedRows((current) => {
-      const next = new Set(current);
-      let changed = false;
-      for (const holding of holdings) {
-        if (holdingReviewState(holding).needsEditing && !next.has(holding.id)) {
-          next.add(holding.id);
-          changed = true;
-        }
-      }
-      return changed ? next : current;
-    });
-  }, [holdings]);
+    if (expandedRowId && !holdings.some((holding) => holding.id === expandedRowId)) {
+      setExpandedRowId(null);
+    }
+  }, [expandedRowId, holdings]);
 
-  function toggleRow(id) {
-    setExpandedRows((current) => {
-      const next = new Set(current);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+  useEffect(() => {
+    if (activeTab === "attention" && rows.length > 0 && attentionRows.length === 0) {
+      setActiveTab("all");
+    }
+  }, [activeTab, attentionRows.length, rows.length]);
+
+  function selectTab(tab) {
+    setActiveTab(tab);
+    setExpandedRowId(null);
+    setVisibleCount(8);
   }
 
   return (
     <div>
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Holding review filters">
+        {[
+          ["attention", "Needs attention", attentionRows.length],
+          ["ready", "Ready", readyRows.length],
+          ["all", "All holdings", rows.length],
+        ].map(([value, label, count]) => (
+          <button
+            key={value}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === value}
+            onClick={() => selectTab(value)}
+            className={`min-h-11 rounded-full px-4 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-[#F16953] ${
+              activeTab === value ? "bg-[#24364c] text-white" : "border border-slate-200 bg-white text-[#495E79]"
+            }`}
+          >
+            {label} ({count})
+          </button>
+        ))}
+      </div>
       <div className="overflow-hidden rounded-2xl border border-[#495E79]/10 bg-white">
-        {holdings.length ? holdings.map((holding, index) => {
-          const state = holdingReviewState(holding);
-          const expanded = expandedRows.has(holding.id);
+        {visibleRows.length ? visibleRows.map(({ holding, state }, index) => {
+          const expanded = expandedRowId === holding.id;
           const allocation = allocationForHolding(holding, portfolioTotal);
           return (
             <article key={holding.id} className={`border-t border-[#495E79]/10 first:border-t-0 ${state.needsEditing ? "bg-red-50/30" : state.needsConfirmation ? "bg-amber-50/30" : ""}`}>
@@ -168,15 +212,18 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove
                 <div className="min-w-0">
                   <p className="truncate font-bold text-[#24364c]">{holding.ticker || `Holding ${index + 1}`}</p>
                   <p className="truncate text-xs text-[#5F7C84]">{holding.name || "Name not available"}</p>
+                  <p className={`mt-1 text-xs font-semibold ${state.status === "Ready" ? "text-emerald-700" : "text-amber-800"}`}>
+                    {state.exactIssue}
+                  </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => toggleRow(holding.id)}
+                  onClick={() => setExpandedRowId(expanded ? null : holding.id)}
                   className="inline-flex min-h-11 items-center justify-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-[#495E79] hover:border-[#73a7a5] focus-visible:ring-2 focus-visible:ring-[#F16953] sm:order-last"
                   aria-expanded={expanded}
                   aria-controls={`holding-details-${holding.id}`}
                 >
-                  {expanded ? "Close" : "Edit"}
+                  {expanded ? "Close" : state.needsConfirmation ? "Review" : "Edit"}
                   <ChevronDown className={`h-4 w-4 transition ${expanded ? "rotate-180" : ""}`} />
                 </button>
                 <p className="text-sm font-semibold text-[#24364c] max-sm:order-3">
@@ -187,12 +234,18 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove
                   <span className="block text-[10px] uppercase tracking-wide text-[#5F7C84] sm:hidden">Allocation</span>
                   {allocation > 0 ? `${allocation.toFixed(1)}%` : "—"}
                 </p>
-                <div className="max-sm:order-5"><ConfidenceBadge confidence={holding.confidence} /></div>
+                <div className="max-sm:order-5">
+                  <ConfidenceBadge confidence={holding.confidence} />
+                  <span className="sr-only">{holding.confidenceReason || `${holding.confidence} confidence extraction`}</span>
+                </div>
                 <div className="max-sm:order-6"><StatusBadge state={state} /></div>
               </div>
 
               {expanded ? (
                 <div id={`holding-details-${holding.id}`} className="border-t border-[#495E79]/10 bg-white px-4 py-4">
+                  <p className="mb-4 rounded-lg bg-slate-50 px-3 py-2 text-xs leading-5 text-[#495E79]">
+                    <strong>Why this confidence:</strong> {holding.confidenceReason || "Some imported details need your confirmation."}
+                  </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     <label className="text-xs font-semibold text-[#5F7C84]">Ticker
                       <input value={holding.ticker} onChange={(event) => onChange(holding.id, "ticker", event.target.value.toUpperCase())} placeholder="VTI" className="mt-1 w-full rounded-lg border px-3 py-2 text-sm font-semibold uppercase focus:ring-2 focus:ring-[#F16953]" />
@@ -217,10 +270,10 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove
                   </div>
                   <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                     <button type="button" onClick={() => onRemove(holding.id)} className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500">
-                      <Trash2 className="h-4 w-4" /> Remove holding
+                      <Trash2 className="h-4 w-4" /> Remove false holding
                     </button>
                     {state.needsConfirmation ? (
-                      <Button type="button" size="sm" onClick={() => { onConfirm(holding.id); toggleRow(holding.id); }} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
+                      <Button type="button" size="sm" onClick={() => { onConfirm(holding.id); setExpandedRowId(null); }} className="min-h-11 bg-[#24364c] hover:bg-[#172638]">
                         <CheckCircle2 className="mr-2 h-4 w-4" /> Confirm details
                       </Button>
                     ) : null}
@@ -230,10 +283,23 @@ function HoldingsTable({ holdings, portfolioTotal, onChange, onConfirm, onRemove
             </article>
           );
         }) : (
-          <div className="px-4 py-8 text-center text-sm text-[#5F7C84]">Uploaded holdings will appear here in a compact review list.</div>
+          <div className="px-4 py-8 text-center text-sm text-[#5F7C84]">
+            {holdings.length ? `No holdings in the ${activeTab === "attention" ? "Needs attention" : "Ready"} view.` : "Uploaded holdings will appear here."}
+          </div>
         )}
       </div>
-      <Button id="add-holding-button" type="button" variant="outline" onClick={onAdd} className="mt-4"><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
+      {filteredRows.length > visibleCount ? (
+        <Button type="button" variant="outline" onClick={() => setVisibleCount((count) => count + 8)} className="mt-4">
+          Show 8 more
+        </Button>
+      ) : null}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button id="add-holding-button" type="button" variant="outline" onClick={onAdd}><Plus className="mr-2 h-4 w-4" /> Add holding</Button>
+        {attentionRows.some(({ state }) => state.needsConfirmation) ? (
+          <Button type="button" variant="outline" onClick={onConfirmAll}><CheckCircle2 className="mr-2 h-4 w-4" /> Confirm all ready holdings</Button>
+        ) : null}
+        <Button type="button" variant="ghost" onClick={onReturnToUpload}>Return to upload</Button>
+      </div>
     </div>
   );
 }
@@ -347,8 +413,10 @@ function DiagnosisDashboard({ diagnosis, onDownload }) {
 }
 
 export default function PlannerTest() {
+  const [activeStep, setActiveStep] = useState("upload");
   const [files, setFiles] = useState([]);
   const [holdings, setHoldings] = useState([]);
+  const [unrecognized, setUnrecognized] = useState([]);
   const [warnings, setWarnings] = useState([]);
   const [brokerMessages, setBrokerMessages] = useState([]);
   const [sourceInfo, setSourceInfo] = useState({
@@ -364,6 +432,7 @@ export default function PlannerTest() {
   const [importAttempt, setImportAttempt] = useState(null);
   const [replaceTarget, setReplaceTarget] = useState("");
   const [totalValue, setTotalValue] = useState("");
+  const [reviewConsent, setReviewConsent] = useState(false);
   const [analysisStarted, setAnalysisStarted] = useState(false);
   const [strategy, setStrategy] = useState("balanced");
   const [goal, setGoal] = useState("long-term-growth");
@@ -387,8 +456,12 @@ export default function PlannerTest() {
   const readiness = useMemo(() => buildPortfolioReadiness({
     holdings,
     portfolioTotal: confirmedTotal,
-    reviewed: false,
-  }), [holdings, confirmedTotal]);
+    filesProcessed: files.length,
+    unrecognizedCount: unrecognized.length,
+    consent: reviewConsent,
+  }), [holdings, confirmedTotal, files.length, reviewConsent, unrecognized.length]);
+  const groupedWarnings = useMemo(() => dedupeWarnings(warnings), [warnings]);
+  const groupedBrokerMessages = useMemo(() => [...new Set(brokerMessages)], [brokerMessages]);
   const planGuidance = getPlanGuidance({ goal, strategy, timelineYears });
 
   const snapshot = useMemo(() => {
@@ -418,6 +491,7 @@ export default function PlannerTest() {
 
   function markDataChanged() {
     setAnalysisStarted(false);
+    setReviewConsent(false);
     setError(null);
   }
 
@@ -450,8 +524,11 @@ export default function PlannerTest() {
       replaceKey,
     });
     const nextHoldings = replaceKey
-      ? holdings.filter((holding) => holding.uploadKey !== replaceKey)
+      ? removeUploadSource(holdings, replaceKey)
       : [...holdings];
+    const nextUnrecognized = replaceKey
+      ? unrecognized.filter((item) => item.uploadKey !== replaceKey)
+      : [...unrecognized];
     const nextWarnings = [];
     const nextBrokerMessages = [];
     const parsedSources = [];
@@ -467,7 +544,12 @@ export default function PlannerTest() {
           },
         });
         const currentUploadKey = uploadKey(file);
-        nextHoldings.push(...parsed.holdings.map((holding) => ({ ...holding, uploadKey: currentUploadKey })));
+        nextHoldings.push(...parsed.holdings.map((holding) => ({
+          ...holding,
+          uploadKey: currentUploadKey,
+          uploadKeys: [currentUploadKey],
+        })));
+        nextUnrecognized.push(...parsed.unrecognized.map((item) => ({ ...item, uploadKey: currentUploadKey })));
         nextWarnings.push(...parsed.warnings);
         nextBrokerMessages.push(parsed.brokerMessage);
         parsedSources.push(parsed.source);
@@ -476,8 +558,9 @@ export default function PlannerTest() {
       const merged = mergeHoldings(nextHoldings);
       setFiles([...retainedFiles, ...unique]);
       setHoldings(merged);
-      setWarnings(nextWarnings);
-      setBrokerMessages(nextBrokerMessages);
+      setUnrecognized(nextUnrecognized);
+      setWarnings(dedupeWarnings(nextWarnings));
+      setBrokerMessages([...new Set(nextBrokerMessages)]);
       if (parsedSources.length) {
         const brokers = [...new Set(parsedSources.map((source) => source.broker))];
         const brokerConfidence = parsedSources.every((source) => source.brokerConfidence === "high")
@@ -507,9 +590,10 @@ export default function PlannerTest() {
         status: requiresReview ? "partial" : "complete",
       }));
       markDataChanged();
+      setActiveStep("review");
     } catch (caught) {
       const normalized = normalizePortfolioImportError(caught);
-      setError(getImportErrorGuidance(normalized));
+      setError({ ...getImportErrorGuidance(normalized), supportCode: normalized.code });
       setImportAttempt((current) => ({
         ...current,
         status: "failed",
@@ -533,10 +617,12 @@ export default function PlannerTest() {
   }
 
   function removeUpload(key) {
-    const nextHoldings = holdings.filter((holding) => holding.uploadKey !== key);
+    const nextHoldings = removeUploadSource(holdings, key);
+    const nextUnrecognized = unrecognized.filter((item) => item.uploadKey !== key);
     const nextFiles = files.filter((file) => uploadKey(file) !== key);
     setFiles(nextFiles);
     setHoldings(nextHoldings);
+    setUnrecognized(nextUnrecognized);
     const nextTotal = nextHoldings.reduce((sum, holding) => sum + (Number(holding.marketValue) || 0), 0);
     setTotalValue(nextTotal > 0 ? nextTotal.toFixed(2) : "");
     if (!nextFiles.length) {
@@ -564,12 +650,30 @@ export default function PlannerTest() {
   function updateHolding(id, field, value) {
     setHoldings((current) => current.map((holding) => {
       if (holding.id !== id) return holding;
-      const next = { ...holding, [field]: value, confidence: field === "confidence" ? value : "high" };
+      const remainingWarnings = (holding.warnings || []).filter((item) => {
+        if (field === "ticker") return item.code !== "symbol-uncertain";
+        if (field === "marketValue") return !["market-value-missing", "calculated-market-value"].includes(item.code);
+        if (field === "category") return !["category-unknown", "unknown-classification"].includes(item.code);
+        return true;
+      });
+      const next = {
+        ...holding,
+        [field]: value,
+        confidence: field === "confidence" ? value : "medium",
+        confidenceReason: field === "confidence"
+          ? holding.confidenceReason
+          : "You corrected this holding. Confirm it once after reviewing the changes.",
+        warnings: field === "confidence"
+          ? remainingWarnings
+          : [...remainingWarnings.filter((item) => item.code !== "user-corrected"), {
+            code: "user-corrected",
+            message: "You corrected this holding.",
+            action: "Confirm the updated details.",
+            severity: "info",
+          }],
+      };
       if (field === "category") next.assetClass = value;
       if (field === "ticker") next.symbol = value;
-      if (field === "category" && value !== "Needs review") {
-        next.warnings = (next.warnings || []).filter((item) => item.code !== "unknown-classification");
-      }
       return next;
     }));
     markDataChanged();
@@ -582,10 +686,37 @@ export default function PlannerTest() {
     markDataChanged();
   }
 
+  function confirmAllReadyHoldings() {
+    setHoldings((current) => current.map((holding) => {
+      const state = holdingReviewState(holding);
+      return state.needsConfirmation ? { ...holding, confidence: "high", warnings: [] } : holding;
+    }));
+    markDataChanged();
+  }
+
+  function clearAllUploads() {
+    setFiles([]);
+    setHoldings((current) => current.filter((holding) => !holding.uploadKey));
+    setUnrecognized([]);
+    setWarnings([]);
+    setBrokerMessages([]);
+    setImportAttempt(null);
+    setTotalValue("");
+    setSourceInfo({
+      kind: "manual",
+      broker: "Generic import",
+      brokerConfidence: "low",
+      fileCount: 0,
+      label: "User-confirmed holdings",
+    });
+    markDataChanged();
+  }
+
   function addHolding() {
     const holding = emptyHolding();
     setHoldings((current) => [...current, holding]);
     markDataChanged();
+    setActiveStep("review");
     requestAnimationFrame(() => {
       document.getElementById("review-heading")?.scrollIntoView({ behavior: "smooth" });
       requestAnimationFrame(() => document.querySelector(`[id="holding-details-${holding.id}"] input`)?.focus());
@@ -603,13 +734,22 @@ export default function PlannerTest() {
     }
     setError(null);
     setAnalysisStarted(true);
+    setActiveStep("diagnosis");
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     requestAnimationFrame(() => document.getElementById("diagnosis-results")?.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth" }));
   }
 
+  const workflowStarted = activeStep !== "upload" || files.length > 0 || holdings.length > 0 || unrecognized.length > 0;
+  const steps = [
+    { id: "upload", label: "Upload", available: true, complete: files.length > 0 || holdings.length > 0 },
+    { id: "review", label: "Review", available: holdings.length > 0 || unrecognized.length > 0, complete: readiness.ready },
+    { id: "plan", label: "Set plan", available: readiness.ready, complete: analysisStarted },
+    { id: "diagnosis", label: "Diagnosis", available: Boolean(diagnosis), complete: Boolean(diagnosis) },
+  ];
+
   return (
     <main className="min-h-screen bg-[#f7f4ef] pb-24 pt-16 text-[#24364c]">
-      <section className="bg-[#081423] py-14 text-white md:py-20">
+      {!workflowStarted ? <section className="bg-[#081423] py-14 text-white md:py-20">
         <div className="container">
           <span className="text-sm font-semibold uppercase tracking-[.2em] text-[#FECFA5]">Private by design • No brokerage login</span>
           <h1 className="mt-4 max-w-4xl text-4xl font-bold tracking-tight md:text-6xl">Free Portfolio Diagnosis</h1>
@@ -617,16 +757,42 @@ export default function PlannerTest() {
             Upload, review, and confirm your holdings before receiving an explainable
             educational diagnosis and personalized PDF.
           </p>
-          <ol className="mt-8 grid gap-2 text-xs sm:grid-cols-3 lg:grid-cols-6" aria-label="Planner steps">
-            {["Upload", "Review holdings", "Set plan", "Analyze", "Preview diagnosis", "Generate PDF"].map((step, index) => (
+          <ol className="mt-8 grid gap-2 text-xs sm:grid-cols-4" aria-label="Planner steps">
+            {["Upload", "Review", "Set plan", "Diagnosis"].map((step, index) => (
               <li key={step} className="rounded-xl border border-white/10 bg-white/5 px-3 py-3"><span className="mr-2 text-[#F16953]">{index + 1}</span>{step}</li>
             ))}
           </ol>
         </div>
-      </section>
+      </section> : null}
+
+      <div className="sticky top-16 z-30 border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur">
+        <div className="container py-3">
+          {workflowStarted ? <p className="mb-2 text-sm font-bold text-[#24364c]">Free Portfolio Diagnosis</p> : null}
+          <nav className="grid grid-cols-4 gap-1" aria-label="Portfolio diagnosis progress">
+            {steps.map((step, index) => {
+              const active = activeStep === step.id;
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  disabled={!step.available}
+                  onClick={() => setActiveStep(step.id)}
+                  aria-current={active ? "step" : undefined}
+                  title={!step.available ? (step.id === "review" ? "Upload a file or add a holding first." : step.id === "plan" ? "Finish and confirm the portfolio review first." : "Analyze the portfolio first.") : undefined}
+                  className={`min-h-11 rounded-xl px-2 text-xs font-semibold transition focus-visible:ring-2 focus-visible:ring-[#F16953] sm:text-sm ${
+                    active ? "bg-[#24364c] text-white" : step.complete ? "bg-emerald-50 text-emerald-800" : "bg-slate-50 text-[#5F7C84]"
+                  } disabled:cursor-not-allowed disabled:opacity-50`}
+                >
+                  <span className="mr-1">{step.complete ? "✓" : index + 1}.</span>{step.label}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
 
       <div className="container py-10">
-        <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">
+        {activeStep === "upload" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="upload-heading">
           <h2 id="upload-heading" className="text-2xl font-bold">1. Upload portfolio data</h2>
           <p className="mt-2 text-sm leading-6 text-[#5F7C84]">Files are processed in your browser. Raw financial documents are not sent to a third-party AI API.</p>
           <div className="mt-6 grid gap-5 md:grid-cols-2">
@@ -675,12 +841,14 @@ export default function PlannerTest() {
             </div>
           ) : null}
           {files.length ? (
-            <div className="mt-5" aria-label="Uploaded items">
-              <h3 className="text-sm font-bold text-[#24364c]">Uploaded items</h3>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+            <details className="mt-5 rounded-2xl border border-[#495E79]/10 bg-slate-50 p-4" aria-label="Uploaded items">
+              <summary className="cursor-pointer text-sm font-bold text-[#24364c]">Uploaded items ({files.length})</summary>
+              <div className="mt-3 grid gap-2">
                 {files.map((file) => {
                   const key = uploadKey(file);
-                  const linkedHoldings = holdings.filter((holding) => holding.uploadKey === key);
+                  const linkedHoldings = holdings.filter((holding) =>
+                    (holding.uploadKeys || [holding.uploadKey]).includes(key),
+                  );
                   const needsReview = linkedHoldings.some((holding) => holdingReviewState(holding).status !== "Ready");
                   return (
                     <article key={key} className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-3 py-3">
@@ -691,8 +859,11 @@ export default function PlannerTest() {
                         </p>
                       </div>
                       <div className="flex flex-none">
-                        <button type="button" onClick={() => replaceUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Replace ${file.name}`}>
+                        <button type="button" onClick={() => processSelectedFiles([file], { retry: true, replaceKey: key })} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Retry ${file.name}`}>
                           <RefreshCw className="h-4 w-4" />
+                        </button>
+                        <button type="button" onClick={() => replaceUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-[#495E79] hover:bg-white focus-visible:ring-2 focus-visible:ring-[#F16953]" aria-label={`Replace ${file.name}`}>
+                          <FileSpreadsheet className="h-4 w-4" />
                         </button>
                         <button type="button" onClick={() => removeUpload(key)} disabled={processing} className="grid h-11 w-11 place-items-center rounded-lg text-red-700 hover:bg-red-50 focus-visible:ring-2 focus-visible:ring-red-500" aria-label={`Remove ${file.name}`}>
                           <Trash2 className="h-4 w-4" />
@@ -702,23 +873,11 @@ export default function PlannerTest() {
                   );
                 })}
               </div>
-            </div>
+              <Button type="button" variant="ghost" size="sm" onClick={clearAllUploads} disabled={processing} className="mt-3 text-red-700">
+                Clear all uploaded items
+              </Button>
+            </details>
           ) : null}
-          {brokerMessages.length ? (
-            <div className="mt-4 grid gap-2" aria-live="polite">
-              {brokerMessages.map((message, index) => (
-                <p key={`${message}-${index}`} className="rounded-xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 px-4 py-3 text-sm text-[#365e60]">
-                  {message}
-                </p>
-              ))}
-            </div>
-          ) : null}
-          {warnings.map((warning) => (
-            <p key={`${warning.code}-${warning.message}`} className="mt-3 flex gap-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-900">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
-              <span><strong>{warning.message}</strong>{warning.action ? ` ${warning.action}` : ""}</span>
-            </p>
-          ))}
           {error ? (
             <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">
               <p className="text-sm font-bold">{error.title}</p>
@@ -734,11 +893,22 @@ export default function PlannerTest() {
                   Add holding manually
                 </Button>
               </div>
+              {error.supportCode ? (
+                <details className="mt-3 text-xs">
+                  <summary className="cursor-pointer font-semibold">Support details</summary>
+                  <p className="mt-1">Internal code: {error.supportCode}</p>
+                </details>
+              ) : null}
             </div>
           ) : null}
-        </section>
+          {holdings.length || unrecognized.length ? (
+            <Button type="button" onClick={() => setActiveStep("review")} className="mt-6 min-h-12 w-full bg-[#F16953] hover:bg-[#d95840]">
+              Continue to review <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          ) : null}
+        </section> : null}
 
-        <section className="mt-8 rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="review-heading">
+        {activeStep === "review" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="review-heading">
           <div className="mb-6 flex flex-col justify-between gap-3 md:flex-row md:items-end">
             <div>
               <h2 id="review-heading" className="text-2xl font-bold">2. Review and correct holdings</h2>
@@ -746,11 +916,30 @@ export default function PlannerTest() {
             </div>
             <span className="text-sm font-semibold text-[#5F7C84]">{holdings.length} row{holdings.length === 1 ? "" : "s"}</span>
           </div>
+          <div className="mb-5 rounded-2xl border border-[#73a7a5]/25 bg-[#73a7a5]/5 p-4 text-sm leading-6 text-[#365e60]" aria-live="polite">
+            <p className="font-semibold">
+              We processed {files.length} file{files.length === 1 ? "" : "s"} and found {holdings.length} likely holding{holdings.length === 1 ? "" : "s"}.
+              {" "}{readiness.editingRows + readiness.confirmationRows} need review.
+            </p>
+            {groupedBrokerMessages.length ? <p className="mt-1">{groupedBrokerMessages.join(" ")}</p> : null}
+            {groupedWarnings.length ? (
+              <details className="mt-2">
+                <summary className="cursor-pointer font-semibold">{groupedWarnings.length} import note{groupedWarnings.length === 1 ? "" : "s"}</summary>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  {groupedWarnings.map((warning) => (
+                    <li key={`${warning.code}-${warning.message}`}>{warning.message}{warning.action ? ` ${warning.action}` : ""}</li>
+                  ))}
+                </ul>
+              </details>
+            ) : null}
+          </div>
           <HoldingsTable
             holdings={holdings}
             portfolioTotal={confirmedTotal}
             onChange={updateHolding}
             onConfirm={confirmHolding}
+            onConfirmAll={confirmAllReadyHoldings}
+            onReturnToUpload={() => setActiveStep("upload")}
             onRemove={(id) => {
               const nextHoldings = holdings.filter((holding) => holding.id !== id);
               setHoldings(nextHoldings);
@@ -760,6 +949,26 @@ export default function PlannerTest() {
             }}
             onAdd={addHolding}
           />
+
+          {unrecognized.length ? (
+            <details className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+              <summary className="cursor-pointer font-semibold">
+                Additional statement text ignored ({unrecognized.length})
+              </summary>
+              <p className="mt-2 leading-6">These lines did not have enough position evidence, so they were not turned into holdings.</p>
+              <ul className="mt-3 max-h-52 space-y-2 overflow-auto">
+                {unrecognized.map((item) => (
+                  <li key={item.id} className="rounded-lg bg-white/70 px-3 py-2">
+                    <span className="font-semibold">{item.candidate || "Statement text"}:</span> {item.text}
+                    <span className="block text-xs text-amber-800">{item.reason}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setUnrecognized([])} className="mt-3 text-amber-950">
+                Remove all ignored text
+              </Button>
+            </details>
+          ) : null}
 
           <div className="mt-7 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.35fr)]">
             <div>
@@ -790,14 +999,47 @@ export default function PlannerTest() {
                   </li>
                 ))}
               </ul>
-              <p className={`mt-3 rounded-lg px-3 py-2 text-sm font-semibold ${readiness.ready ? "bg-emerald-100 text-emerald-900" : "bg-amber-100 text-amber-900"}`}>
-                {readiness.ready ? "Ready to analyze." : `Action needed: ${readiness.actions[0]}`}
-              </p>
+              {readiness.actions.length ? (
+                <div className="mt-3 rounded-lg bg-amber-100 px-3 py-2 text-sm text-amber-950">
+                  <p className="font-semibold">Issues remaining: {readiness.actions.length}</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5">
+                    {readiness.actions.map((action) => <li key={action}>{action}</li>)}
+                  </ul>
+                </div>
+              ) : (
+                <p className="mt-3 rounded-lg bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-900">Holding data is complete.</p>
+              )}
             </div>
           </div>
-        </section>
+          <label className={`mt-6 flex min-h-12 items-start gap-3 rounded-2xl border p-4 text-sm ${readiness.consentEnabled ? "cursor-pointer border-[#73a7a5]/30 bg-white" : "cursor-not-allowed border-slate-200 bg-slate-50 text-slate-500"}`}>
+            <input
+              type="checkbox"
+              checked={reviewConsent}
+              disabled={!readiness.consentEnabled}
+              onChange={(event) => setReviewConsent(event.target.checked)}
+              className="mt-0.5 h-5 w-5 rounded border-slate-300 accent-[#F16953]"
+            />
+            <span>
+              <strong>I reviewed the holdings and confirm they represent my portfolio.</strong>
+              {!readiness.consentEnabled ? <span className="mt-1 block">Resolve the issues above before confirming.</span> : null}
+            </span>
+          </label>
+          <Button
+            type="button"
+            onClick={() => setActiveStep("plan")}
+            disabled={!readiness.ready}
+            className="mt-5 min-h-12 w-full bg-[#F16953] hover:bg-[#d95840] disabled:cursor-not-allowed"
+          >
+            {readiness.ready
+              ? "Continue to set plan"
+              : !readiness.dataReady
+                ? `Resolve: ${readiness.actions[0] || "Finish portfolio review"}`
+                : "Confirm the reviewed portfolio to continue"}
+            <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </section> : null}
 
-        <section className="mt-8 rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="plan-heading">
+        {activeStep === "plan" ? <section className="rounded-[2rem] border border-[#495E79]/10 bg-white p-5 shadow-sm md:p-8" aria-labelledby="plan-heading">
           <h2 id="plan-heading" className="text-2xl font-bold">3. Set your plan</h2>
           <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             <div>
@@ -848,17 +1090,21 @@ export default function PlannerTest() {
               <CheckCircle2 className="h-4 w-4" /> Your goal, strategy, and timeline are aligned.
             </p>
           )}
+          <Button type="button" variant="ghost" onClick={() => setActiveStep("review")} className="mt-5">
+            Back to portfolio review
+          </Button>
           <div className="sticky bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-20 mr-14 mt-7 rounded-2xl border border-white/60 bg-white/95 p-2 shadow-xl backdrop-blur md:static md:mr-0 md:border-0 md:bg-transparent md:p-0 md:shadow-none">
             <Button onClick={analyze} disabled={!readiness.ready || processing} size="lg" className="min-h-12 w-full bg-[#F16953] text-base hover:bg-[#d95840] disabled:cursor-not-allowed">
-              {readiness.ready ? "Analyze My Portfolio" : `Next: ${readiness.actions[0] || "Add portfolio data"}`}
+              {readiness.ready ? "Analyze My Portfolio" : `Resolve: ${readiness.actions[0] || "Add portfolio data"}`}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </div>
-        </section>
+        </section> : null}
 
-        <div id="diagnosis-results">
+        {activeStep === "diagnosis" ? <div id="diagnosis-results">
           {diagnosis && snapshot ? (
-            <div className="mt-8 space-y-8">
+            <div className="space-y-8">
+              <Button type="button" variant="ghost" onClick={() => setActiveStep("plan")}>Back to plan</Button>
               <ScenarioExplorer
                 strategy={strategy}
                 contributionAmount={monthlyContribution}
@@ -872,9 +1118,9 @@ export default function PlannerTest() {
               <PremiumIntelligencePreview analysis={diagnosis} />
             </div>
           ) : analysisStarted ? (
-            <p className="mt-8 rounded-2xl bg-red-50 p-5 text-red-800" role="alert">The reviewed data could not produce a trustworthy diagnosis. Recheck the holdings and total.</p>
+            <p className="rounded-2xl bg-red-50 p-5 text-red-800" role="alert">We could not create a diagnosis from the reviewed data. Return to Review and check that each holding has a symbol or name and a market value.</p>
           ) : null}
-        </div>
+        </div> : null}
 
         <div className="mt-8 flex items-start gap-3 rounded-2xl border border-[#495E79]/10 bg-white p-5 text-sm leading-6 text-[#5F7C84]">
           <ShieldCheck className="mt-0.5 h-5 w-5 flex-none text-[#73a7a5]" />

@@ -36,9 +36,21 @@ export type DraftHolding = {
   category: string;
   assetClass?: string;
   confidence: Confidence;
+  confidenceReason?: string;
   fieldConfidence?: FieldConfidence;
   sourceRef?: string;
+  uploadKey?: string;
+  uploadKeys?: string[];
   warnings?: AnalysisWarning[];
+};
+
+export type UnrecognizedInformation = {
+  id: string;
+  text: string;
+  candidate: string;
+  reason: string;
+  sourceRef: string;
+  uploadKey?: string;
 };
 
 export type ImportProgress = {
@@ -52,6 +64,7 @@ export type ParseOptions = {
 
 export type ParseResult = {
   holdings: DraftHolding[];
+  unrecognized: UnrecognizedInformation[];
   warnings: AnalysisWarning[];
   source: PortfolioSource;
   brokerMessage: string;
@@ -210,8 +223,12 @@ async function ocrImage(source: File | Blob, options: ParseOptions = {}) {
   }
 }
 
-function parsedTextHoldings(text: string, sourceRef: string): { holdings: DraftHolding[]; recovered: boolean } {
-  const parsed = parsePortfolioText(text);
+function parsedTextHoldings(
+  text: string,
+  sourceRef: string,
+  recognizedBroker = false,
+): { holdings: DraftHolding[]; recovered: boolean; unrecognized: UnrecognizedInformation[] } {
+  const parsed = parsePortfolioText(text, 0, { recognizedBroker });
   const holdings = parsed.holdings.map((holding: DraftHolding) => {
     const category = holding.category === "Other" ? "Needs review" : holding.category;
     const warnings = Array.isArray(holding.warnings) ? [...holding.warnings] : [];
@@ -228,7 +245,12 @@ function parsedTextHoldings(text: string, sourceRef: string): { holdings: DraftH
       warnings,
     };
   });
-  return { holdings, recovered: Boolean(parsed.recovered) };
+  const unrecognized = (parsed.unrecognized || []).map((item: Omit<UnrecognizedInformation, "id" | "sourceRef">) => ({
+    ...item,
+    id: createId(),
+    sourceRef,
+  }));
+  return { holdings, recovered: Boolean(parsed.recovered), unrecognized };
 }
 
 function sourceMetadata(kind: PortfolioSource["kind"], file: File, detection: ReturnType<typeof detectBroker>): PortfolioSource {
@@ -272,6 +294,7 @@ async function parseCsv(file: File): Promise<ParseResult> {
   if (!holdings.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
   return {
     holdings,
+    unrecognized: [],
     warnings,
     source: sourceMetadata("csv", file, detection),
     brokerMessage: detection.message,
@@ -303,7 +326,13 @@ async function parsePdf(file: File, options: ParseOptions = {}): Promise<ParseRe
   const data = await readBlobArrayBuffer(file);
   let pdf;
   try {
-    const loadingTask = getDocument({ data });
+    const loadingTask = getDocument({
+      data,
+      isOffscreenCanvasSupported: false,
+      isImageDecoderSupported: false,
+      useWorkerFetch: false,
+      useWasm: false,
+    });
     if (!loadingTask || !loadingTask.promise) throw importError("PDF-DOCUMENT-01", { kind: "document-loading" });
     pdf = await loadingTask.promise;
   } catch (error) {
@@ -356,13 +385,14 @@ async function parsePdf(file: File, options: ParseOptions = {}): Promise<ParseRe
   }
   if (!text.trim()) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
   const detection = detectBroker({ text, fileName: file.name });
-  const parsed = parsedTextHoldings(text, `${detection.label} PDF`);
-  if (!parsed.holdings.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
+  const parsed = parsedTextHoldings(text, `${detection.label} PDF`, detection.confidence !== "low");
+  if (!parsed.holdings.length && !parsed.unrecognized.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
   if (parsed.recovered) {
     warnings.push(warning("partial-import", "Some PDF fields need manual confirmation.", "Review every yellow row before analyzing."));
   }
   return {
     holdings: parsed.holdings,
+    unrecognized: parsed.unrecognized,
     warnings,
     source: sourceMetadata("pdf", file, detection),
     brokerMessage: detection.message,
@@ -380,8 +410,8 @@ export async function parsePortfolioFile(file: File, options: ParseOptions = {})
     const text = await ocrImage(file, options);
     if (!text.trim()) throw importError("OCR-RECOGNIZE-01", { kind: "recognition" });
     const detection = detectBroker({ text, fileName: file.name });
-    const parsed = parsedTextHoldings(text, `${detection.label} screenshot`);
-    if (!parsed.holdings.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
+    const parsed = parsedTextHoldings(text, `${detection.label} screenshot`, detection.confidence !== "low");
+    if (!parsed.holdings.length && !parsed.unrecognized.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
     const warnings = [
       warning("ocr-review", "Image text was read with OCR and may be uncertain.", "Review every detected row."),
     ];
@@ -390,6 +420,7 @@ export async function parsePortfolioFile(file: File, options: ParseOptions = {})
     }
     return {
       holdings: parsed.holdings,
+      unrecognized: parsed.unrecognized,
       warnings,
       source: sourceMetadata("image", file, detection),
       brokerMessage: detection.message,
@@ -402,13 +433,14 @@ export async function parsePortfolioFile(file: File, options: ParseOptions = {})
     const text = await readBlobText(file);
     if (!text.trim()) throw importError("FILE-EMPTY-01", { kind: "empty-file", retryable: false });
     const detection = detectBroker({ text, fileName: file.name });
-    const parsed = parsedTextHoldings(text, `${detection.label} text import`);
-    if (!parsed.holdings.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
+    const parsed = parsedTextHoldings(text, `${detection.label} text import`, detection.confidence !== "low");
+    if (!parsed.holdings.length && !parsed.unrecognized.length) throw importError("NO-POSITIONS-01", { kind: "no-positions" });
     const warnings = parsed.recovered
       ? [warning("partial-import", "Some text fields need manual confirmation.", "Complete every yellow row before analyzing.")]
       : [];
     return {
       holdings: parsed.holdings,
+      unrecognized: parsed.unrecognized,
       warnings,
       source: sourceMetadata("txt", file, detection),
       brokerMessage: detection.message,
@@ -421,8 +453,24 @@ export async function parsePortfolioFile(file: File, options: ParseOptions = {})
 export function mergeHoldings(holdings: DraftHolding[]) {
   const seen = new Map<string, DraftHolding>();
   for (const holding of holdings) {
-    const key = holding.ticker || holding.name.toLowerCase() || holding.id;
-    if (!seen.has(key)) seen.set(key, holding);
+    const symbol = holding.ticker || holding.name.toLowerCase() || holding.id;
+    const valueContext = Number(holding.marketValue) > 0
+      ? Number(holding.marketValue).toFixed(2)
+      : holding.percent ?? holding.sourceRef ?? "";
+    const key = `${symbol}|${valueContext}`;
+    const existing = seen.get(key);
+    if (!existing) {
+      const uploadKeys = [...new Set([...(holding.uploadKeys || []), holding.uploadKey].filter(Boolean))] as string[];
+      seen.set(key, { ...holding, uploadKeys });
+      continue;
+    }
+    const uploadKeys = [...new Set([
+      ...(existing.uploadKeys || []),
+      existing.uploadKey,
+      ...(holding.uploadKeys || []),
+      holding.uploadKey,
+    ].filter(Boolean))] as string[];
+    seen.set(key, { ...existing, uploadKeys });
   }
   return [...seen.values()];
 }
